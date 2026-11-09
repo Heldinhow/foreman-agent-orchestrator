@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { CHECKPOINTS, factsAt } from "./checkpoints.ts";
+import { globProblem } from "./path-glob.ts";
 
 /**
  * The shape of Policy, and nothing else: every value lives in `policy/defaults.yaml`
@@ -15,6 +17,12 @@ export const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const Name = z.string().regex(NAME_PATTERN);
 const Text = z.string().min(1);
 const Texts = z.array(Text);
+const PathGlobs = z.array(
+  Text.superRefine((pattern, context) => {
+    const problem = globProblem(pattern);
+    if (problem !== undefined) context.addIssue({ code: "custom", message: problem });
+  }),
+);
 const PositiveInt = z.number().int().positive();
 const SchemaVersion = z.literal(1);
 
@@ -43,17 +51,65 @@ const StepSchema = z.strictObject({
 });
 
 const RuleSchema = z.strictObject({
-  checkpoints: z.array(z.string().regex(/^[a-z]+(\.[a-z-]+)+$/, "must look like outbound.push")).min(1),
+  checkpoints: z.array(z.enum(CHECKPOINTS)).min(1),
   match: z
     .strictObject({
-      paths: Texts.optional(),
+      paths: PathGlobs.optional(),
       facts: z.record(Name, z.union([z.string(), z.number(), z.boolean()])).optional(),
     })
     .optional(),
-  except: Texts.optional(),
+  except: PathGlobs.optional(),
   effect: z.enum(["allow", "deny", "flag", "require-approval"]),
   enabled: z.boolean().optional(),
 });
+
+export type Rule = z.infer<typeof RuleSchema>;
+
+/**
+ * Whether a rule applies whatever the facts, with no `match` or `except`. A checkpoint's
+ * fallback says what happens when no rule with conditions applies.
+ */
+export function isFallbackRule(rule: Rule): boolean {
+  const { paths, facts } = rule.match ?? {};
+  return paths === undefined && Object.keys(facts ?? {}).length === 0 && (rule.except ?? []).length === 0;
+}
+
+/** What a rule can test depends on its checkpoints, so a typo can't leave it doing nothing. */
+function checkRuleConditions(id: string, rule: Rule, context: z.RefinementCtx): void {
+  const at = (path: (string | number)[], message: string) =>
+    context.addIssue({ code: "custom", path: ["rules", id, ...path], message });
+
+  for (const checkpoint of rule.checkpoints) {
+    const facts = factsAt(checkpoint);
+    for (const name of Object.keys(rule.match?.facts ?? {})) {
+      if (!facts.includes(name)) at(["match", "facts", name], `${checkpoint} has no fact "${name}"`);
+    }
+    if (facts.includes("path")) continue;
+    if (rule.match?.paths !== undefined) at(["match", "paths"], `${checkpoint} has no path to match`);
+    if (rule.except !== undefined) at(["except"], `${checkpoint} has no path to match`);
+  }
+}
+
+/**
+ * A layer holds only what differs, so this applies to `PolicySchema` and so to the merged
+ * result, not to a layer alone. A missing rule can't quietly mean "allow" (ADR-0058).
+ */
+const GuardSchema = z
+  .strictObject({ rules: z.record(Name, RuleSchema) })
+  .superRefine(({ rules }, context) => {
+    for (const [id, rule] of Object.entries(rules)) checkRuleConditions(id, rule, context);
+
+    const enabled = Object.values(rules).filter((rule) => rule.enabled !== false);
+    for (const checkpoint of CHECKPOINTS) {
+      if (!enabled.some((rule) => rule.checkpoints.includes(checkpoint) && isFallbackRule(rule))) {
+        context.addIssue({
+          code: "custom",
+          path: ["rules"],
+          message: `${checkpoint} has no rule set: it needs an enabled rule with no match or except, so that its decision is never implied`,
+        });
+      }
+    }
+  });
 
 const RepositorySchema = z.strictObject({
   mode: z.enum(["propose", "autonomous"]),
@@ -105,7 +161,7 @@ export const PolicySchema = z.strictObject({
     completion: z.array(GateSchema),
   }),
   policies: z.strictObject({
-    guard: z.strictObject({ rules: z.record(Name, RuleSchema) }),
+    guard: GuardSchema,
     sandbox: z.enum(["none", "bwrap"]),
     /** Applies to every repository that `repositories` doesn't name. */
     repositoryDefaults: RepositorySchema,

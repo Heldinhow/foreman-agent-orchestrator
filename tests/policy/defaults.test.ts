@@ -55,7 +55,14 @@ test("the shipped defaults deny .env and except .env.example", async () => {
 test("the shipped defaults need Evidence to close a Task", async () => {
   const policy = await shippedPolicy();
 
-  expect(rulesAt(policy, "task.close").map((rule) => rule.effect)).toEqual(["deny"]);
+  const { rules } = policy.policies.guard;
+  expect(rules["deny-close-without-evidence"]).toEqual({ checkpoints: ["task.close"], effect: "deny" });
+  expect(rules["allow-close-with-evidence"]).toEqual({
+    checkpoints: ["task.close"],
+    match: { facts: { evidence: "present" } },
+    effect: "allow",
+  });
+  expect(rulesAt(policy, "task.close")).toHaveLength(2);
   const implement = policy.pipeline.steps.find((step: { id: string }) => step.id === "implement");
   expect(implement.gates).toContainEqual({ type: "evidence" });
 });

@@ -1,6 +1,9 @@
 import { isYamlMap, type YamlMap } from "../config/yaml-file.ts";
 
-export type LayerName = "built-in" | "Workspace" | "Project" | "user override";
+/** The Policy Layers, lowest precedence first. */
+export const LAYER_PRECEDENCE = ["built-in", "Workspace", "Project", "user override"] as const;
+
+export type LayerName = (typeof LAYER_PRECEDENCE)[number];
 
 export interface PolicyLayer {
   name: LayerName;

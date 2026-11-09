@@ -65,12 +65,21 @@ policies:
         except: [.env.example, .env.sample, .env.template]
         effect: deny
 
-      # A Task can't close without Evidence.
+      # What happens to any other file. Every checkpoint needs a rule like this one, with
+      # no match or except, so that a decision is never implied.
+      allow-other-files:
+        checkpoints: [worktree.copy, worktree.tracked, scan.read, adapter.render, diff.path]
+        effect: allow
+
+      # A Task can't close without Evidence, unless the rule below says it's present.
       deny-close-without-evidence:
         checkpoints: [task.close]
-        match:
-          facts: { evidence: missing }
         effect: deny
+      allow-close-with-evidence:
+        checkpoints: [task.close]
+        match:
+          facts: { evidence: present }
+        effect: allow
 
       # Every Outbound Action waits for an Approval.
       require-approval-push:

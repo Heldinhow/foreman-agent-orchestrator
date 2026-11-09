@@ -4,14 +4,14 @@
 
 **Blocked by:** [003: policy/defaults.yaml and Policy Layers](003-policy-layers.md)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
-- [ ] `evaluate(checkpoint, facts, policySnapshot)` returns `allow`, `deny`, `flag` or `require-approval`, naming the rule and layer.
-- [ ] **AC-87:** a static test finds no deny globs, credential names, secret patterns or default Mode values in source code. A missing or invalid `policy/defaults.yaml` stops Foreman with a clear error.
-- [ ] **AC-41 (part):** the result depends only on the checkpoint, facts and snapshot, with no input from Worker text or prompts.
-- [ ] The schema requires a rule set for every checkpoint, so a missing rule can't mean "allow".
+- [x] `evaluate(checkpoint, facts, policySnapshot)` returns `allow`, `deny`, `flag` or `require-approval`, naming the rule and layer.
+- [x] **AC-87:** a static test finds no deny globs, credential names, secret patterns or default Mode values in source code. A missing or invalid `policy/defaults.yaml` stops Foreman with a clear error.
+- [x] **AC-41 (part):** the result depends only on the checkpoint, facts and snapshot, with no input from Worker text or prompts.
+- [x] The schema requires a rule set for every checkpoint, so a missing rule can't mean "allow".
 
 ## Tests
 
