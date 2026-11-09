@@ -4,16 +4,16 @@
 
 **Blocked by:** [002: Ledger](002-ledger.md)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
-- [ ] **AC-17:** concurrent claimants in separate processes contend for one Task, and exactly one wins, across many iterations.
-- [ ] **AC-18:** an expired heartbeat can be taken over, and concurrent takeovers produce exactly one winner.
-- [ ] **AC-19:** a live heartbeat can't be taken over.
-- [ ] **AC-20:** a Task-closing event from a lost holder with an old generation is refused.
-- [ ] **AC-55 (lock part):** lock files hold only a random token, generation, heartbeat time and TTL.
-- [ ] Heartbeats are renewed with write-to-temp, fsync and atomic rename.
+- [x] **AC-17:** concurrent claimants in separate processes contend for one Task, and exactly one wins, across many iterations.
+- [x] **AC-18:** an expired heartbeat can be taken over, and concurrent takeovers produce exactly one winner.
+- [x] **AC-19:** a live heartbeat can't be taken over.
+- [x] **AC-20:** a Task-closing event from a lost holder with an old generation is refused.
+- [x] **AC-55 (lock part):** lock files hold only a random token, generation, heartbeat time and TTL.
+- [x] Heartbeats are renewed with write-to-temp, fsync and atomic rename.
 
 ## Tests
 

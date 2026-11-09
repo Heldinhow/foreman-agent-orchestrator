@@ -2,13 +2,28 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { deriveActionId, type ActionIdentity } from "./action-id.ts";
-import { ACTION_DONE, ACTION_PENDING, SCHEMA_VERSION, type LedgerEvent } from "./events.ts";
+import {
+  ACTION_DONE,
+  ACTION_PENDING,
+  SCHEMA_VERSION,
+  TASK_CLOSED,
+  type LedgerEvent,
+} from "./events.ts";
 import { parseLedger, type TornLine } from "./lines.ts";
 import { createScrub, type MachineIdentity } from "./privacy.ts";
-import { replay, type LedgerState } from "./reducer.ts";
+import { replay, taskRecord, type LedgerState } from "./reducer.ts";
 
 export { LedgerCorruptError, type TornLine } from "./lines.ts";
 export { LedgerPrivacyError } from "./privacy.ts";
+
+export class StaleGenerationError extends Error {
+  override readonly name = "StaleGenerationError";
+
+  /** Holds only the Ledger's own IDs and numbers, so this message may be shown or logged. */
+  constructor(runId: unknown, taskId: unknown, generation: unknown) {
+    super(`Ledger: refusing to close Task ${taskId} of Run ${runId}: generation ${generation} isn't current`);
+  }
+}
 
 export interface LedgerOptions {
   workspace: string;
@@ -32,7 +47,10 @@ export interface LoadedLedger {
 }
 
 export interface Ledger {
-  /** Durably records one event. Actions go through `recordPending` and `recordDone`. */
+  /**
+   * Durably records one event. Actions go through `recordPending` and `recordDone`. A
+   * Task-closing event without the current generation throws `StaleGenerationError`.
+   */
   append(event: NewEvent): LedgerEvent;
   /** Durably records an intended action. Returning means it's safe to perform it. */
   recordPending(action: NewAction): ActionEvent;
@@ -67,12 +85,25 @@ export function openLedger(options: LedgerOptions): Ledger {
     return { ...parsed, state: replay(parsed.events) };
   }
 
+  function closeTask(event: NewEvent): LedgerEvent {
+    const { runId, taskId, generation } = event;
+    const stale = () => new StaleGenerationError(runId, taskId, generation);
+    const current = taskRecord(load().state, String(runId), String(taskId));
+    if (current?.generation !== generation || current?.closedBy !== undefined) throw stale();
+
+    const line = write(event);
+    // A takeover can land between that check and this write, and Ledger order decides.
+    const after = taskRecord(load().state, String(runId), String(taskId));
+    if (after?.closedBy !== line.eventId) throw stale();
+    return line;
+  }
+
   return {
     append(event) {
       if (event.type.startsWith("action.")) {
         throw new Error(`Ledger: "${event.type}" is written only by recordPending and recordDone`);
       }
-      return write(event);
+      return event.type === TASK_CLOSED ? closeTask(event) : write(event);
     },
 
     recordPending(action) {
@@ -148,7 +179,7 @@ function appendLine(path: string, line: string): void {
   }
 }
 
-function syncDirectory(path: string): void {
+export function syncDirectory(path: string): void {
   const fd = fs.openSync(path, fs.constants.O_RDONLY);
   try {
     fs.fsyncSync(fd);

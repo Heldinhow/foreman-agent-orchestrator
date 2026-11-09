@@ -1,4 +1,11 @@
-import { ACTION_DONE, ACTION_PENDING, type LedgerEvent } from "./events.ts";
+import {
+  ACTION_DONE,
+  ACTION_PENDING,
+  RUN_LOCKED,
+  TASK_CLOSED,
+  TASK_LOCKED,
+  type LedgerEvent,
+} from "./events.ts";
 import { LedgerCorruptError } from "./lines.ts";
 
 export interface ActionRecord {
@@ -13,16 +20,32 @@ export interface ActionRecord {
   outcome?: string;
 }
 
+export interface TaskRecord {
+  /** The highest generation the Ledger has seen for this Task's lock. */
+  generation: number;
+  /** The `eventId` of the event that closed the Task. */
+  closedBy?: string;
+}
+
 /** State derived from the Ledger. `actions` keeps the order actions were last intended. */
 export interface LedgerState {
   actions: ReadonlyMap<string, ActionRecord>;
+  tasks: ReadonlyMap<string, TaskRecord>;
+  runGenerations: ReadonlyMap<string, number>;
 }
 
-export const initialState: LedgerState = { actions: new Map() };
+export const initialState: LedgerState = {
+  actions: new Map(),
+  tasks: new Map(),
+  runGenerations: new Map(),
+};
 
 export function reduce(state: LedgerState, event: LedgerEvent): LedgerState {
   if (event.type === ACTION_PENDING) return recordPending(state, event);
   if (event.type === ACTION_DONE) return recordDone(state, event);
+  if (event.type === TASK_LOCKED) return recordTaskLocked(state, event);
+  if (event.type === RUN_LOCKED) return recordRunLocked(state, event);
+  if (event.type === TASK_CLOSED) return recordTaskClosed(state, event);
   return state;
 }
 
@@ -35,6 +58,18 @@ export function replay(events: Iterable<LedgerEvent>): LedgerState {
 /** Actions with a `pending` and no `done`, for Reconciliation to resolve. */
 export function unfinishedActions(state: LedgerState): ActionRecord[] {
   return [...state.actions.values()].filter((action) => action.state === "pending");
+}
+
+export function taskRecord(
+  state: LedgerState,
+  runId: string,
+  taskId: string,
+): TaskRecord | undefined {
+  return state.tasks.get(taskKey(runId, taskId));
+}
+
+function taskKey(runId: string, taskId: string): string {
+  return JSON.stringify([runId, taskId]);
 }
 
 function recordPending(state: LedgerState, event: LedgerEvent): LedgerState {
@@ -51,7 +86,7 @@ function recordPending(state: LedgerState, event: LedgerEvent): LedgerState {
     headSha: event.headSha as string,
     generation: event.generation,
   });
-  return { actions };
+  return { ...state, actions };
 }
 
 function recordDone(state: LedgerState, event: LedgerEvent): LedgerState {
@@ -64,5 +99,35 @@ function recordDone(state: LedgerState, event: LedgerEvent): LedgerState {
   }
   const actions = new Map(state.actions);
   actions.set(actionId, { ...pending, state: "done", outcome: event.outcome });
-  return { actions };
+  return { ...state, actions };
+}
+
+/** Takes the highest generation: a slow winner's event can land after its successor's. */
+function recordTaskLocked(state: LedgerState, event: LedgerEvent): LedgerState {
+  const key = taskKey(event.runId as string, event.taskId as string);
+  const record = state.tasks.get(key);
+  const generation = Math.max(record?.generation ?? 0, event.generation as number);
+  const tasks = new Map(state.tasks);
+  tasks.set(key, { ...record, generation });
+  return { ...state, tasks };
+}
+
+function recordRunLocked(state: LedgerState, event: LedgerEvent): LedgerState {
+  const runId = event.runId as string;
+  const generation = Math.max(state.runGenerations.get(runId) ?? 0, event.generation as number);
+  return { ...state, runGenerations: new Map(state.runGenerations).set(runId, generation) };
+}
+
+/**
+ * Ledger order decides who was current. A close that lost that race can still reach the
+ * file, because the check and the append aren't one step. It stays there, doing nothing.
+ */
+function recordTaskClosed(state: LedgerState, event: LedgerEvent): LedgerState {
+  const key = taskKey(event.runId as string, event.taskId as string);
+  const record = state.tasks.get(key);
+  if (record === undefined || record.closedBy !== undefined) return state;
+  if (event.generation !== record.generation) return state;
+  const tasks = new Map(state.tasks);
+  tasks.set(key, { ...record, closedBy: event.eventId });
+  return { ...state, tasks };
 }

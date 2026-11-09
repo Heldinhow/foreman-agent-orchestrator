@@ -20,3 +20,9 @@ export interface LedgerEvent {
 
 export const ACTION_PENDING = "action.pending";
 export const ACTION_DONE = "action.done";
+
+/** Written when a claimant wins a lock. `generation` numbers each holder in turn. */
+export const TASK_LOCKED = "task.locked";
+export const RUN_LOCKED = "run.locked";
+/** Must carry the current generation, so a holder that lost its lock can't close the Task. */
+export const TASK_CLOSED = "task.closed";
