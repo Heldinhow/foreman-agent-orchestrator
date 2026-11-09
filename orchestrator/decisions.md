@@ -33,3 +33,10 @@ Record future coordination decisions here with source, rationale, affected work 
 - Decision: `foreman-setup` interviews the operator about product and workspace, registers target/reference sources and assigns evidence-backed research to independent T3 Workers. Its memory reference defines the authoritative file ownership; findings, human decisions and hypotheses remain distinguishable.
 - Confirmation: unresolved gaps and their impact remain explicit. Setup readiness requires human confirmation for its stated scope, not a claim of total context.
 - Use: later demands retrieve relevant context and gaps; roadmap proposals use product goals and dependencies but require human priorities and confirmation. Private workspace context does not belong in the public source repository.
+
+## D-006: Repository routing and cold-session memory
+
+- Authority: owner's example of a workspace with about seven related service repositories and requirement to recover context in every new session; tracked in issue #7.
+- Decision: setup records every repository's identity, responsibility, domain ownership, dependencies and verified or unresolved T3 binding in an explicit workspace catalog. Task routing uses that evidence before a Worker is launched.
+- Continuity: each new Router runs a bootstrap reading core records and all registered project summaries, reconciles current work and records missing coverage. Material discussions, corrections and findings are persisted incrementally; history links to authoritative records and handoff captures continuation state.
+- Limit: instructions require reading/reconciliation but do not guarantee automatic injection, unlimited context or crash-safe writes. Missing/private/stale context remains an explicit blocker for affected work, not an excuse to guess.

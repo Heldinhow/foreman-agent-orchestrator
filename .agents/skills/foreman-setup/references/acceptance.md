@@ -15,6 +15,10 @@ Tracked in [issue #6](https://github.com/Heldinhow/foreman-agent-orchestrator/is
 9. **Roadmap:** a requested proposal uses outcomes, constraints and dependencies; missing business priorities are asked, not inferred from code.
 10. **Host/tool limitation:** unavailable research tools or access produce explicit blockers, not a Router subagent, guessed findings or elevated permissions.
 
+11. **Seven-service catalog:** all seven operator-provided repositories appear with stable identities, responsibilities, project-note links and verified or unresolved T3 mappings. No service disappears because it was inaccessible.
+12. **Cold restart:** a new Router without the original conversation recovers the product, every repository summary, dependency graph, current decisions and ongoing work from persisted records; missing history or private access is explicit.
+13. **Material discussion capture:** a corrected responsibility, rejected alternative, research finding or unresolved question updates its owning record and history before a later assignment relies on it; a failed write leaves dependent work blocked.
+
 ## Authoring and structural checks
 
 Apply AI Hero `writing-for-agents` and its skill mechanics: intentional model invocation, branch-specific pointers, one home per fact/procedure and observable completion criteria. Source: https://www.aihero.dev/skills-writing-for-agents .

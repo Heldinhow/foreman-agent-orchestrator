@@ -8,7 +8,8 @@ Use these fields for briefs, durable assignments, questions and returns. Resolve
 Task / issue:
 Objective and scope:
 Delegating Router thread link:
-Workspace / project:
+Workspace / project and verified T3 binding:
+Routing rationale / affected projects / dependency order:
 Required context and relevant decisions:
 Specification / acceptance criteria:
 Dependencies / required base commit or ref:
@@ -28,7 +29,8 @@ For a grill assignment, include the procedure in `grill.md`. For every assignmen
 ```text
 Task / issue / scope:
 Delegating Router link / Worker thread link:
-Project / branch / sanitized worktree reference:
+Project / verified binding / branch / sanitized worktree reference:
+Routing rationale / impacted projects / context sources:
 State:
 Last observation / evidence source:
 Latest outcome / commit / PR:

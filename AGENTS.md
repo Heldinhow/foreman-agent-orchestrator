@@ -4,7 +4,7 @@ Foreman is a coordinating Router thread in T3 Code, with independent Worker thre
 
 ## Start or resume
 
-Read `orchestrator/context.md`, `orchestrator/decisions.md` and `orchestrator/status.md`. Reconcile recorded work against accessible threads and GitHub issues/PRs before assigning replacements. Treat inaccessible state as unknown, not finished.
+Complete `.agents/skills/foreman-t3-coordination/references/bootstrap.md` in every new Router session before coordinating. It loads the current workspace memory, repository catalog, project summaries, decisions and unfinished work, then reconciles live state. Missing records are explicit gaps, not permission to assume prior knowledge.
 
 ## Responsibilities
 
@@ -28,4 +28,4 @@ Authenticated human approval is required before push, PR creation, merge or depl
 - `orchestrator/decisions.md`: consequential decisions, sources and rationale; architectural ADRs are linked, not duplicated.
 - `orchestrator/status.md`: assignments, Worker links, verified outcomes, blockers, pending questions and next actions.
 
-Update affected records at assignment, material progress, blockage, Worker return and session handoff. A future Router must be able to identify every unfinished task and its next action without reading this conversation.
+Update affected records at assignment, material progress, blockage, Worker return and session handoff. Capture relevant answers, corrections, rationale, findings and lessons as they occur; use the setup memory contract for history/checkpoint ownership. A future Router must be able to recover consequential context and unfinished work without reading this conversation.

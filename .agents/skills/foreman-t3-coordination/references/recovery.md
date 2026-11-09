@@ -16,9 +16,9 @@ Check recorded Worker links, issue/PR state and available thread activity before
 
 ## End a session
 
-Update each unfinished assignment/question with its latest observation, evidence references, blockers, owner and next action. Keep committed records sanitized under the repository confidentiality rules.
+Update each unfinished assignment/question with its latest observation, evidence references, blockers, owner and next action. Use the setup memory contract's handoff shape to record the latest memory coverage and unsynchronized changes. Keep committed records sanitized under the repository confidentiality rules.
 
-**Done:** a fresh Router can identify all unfinished work and the next actions from the durable index.
+**Done:** a fresh Router can identify all unfinished work and the next actions from the durable index; the checkpoint links to captured material discussions and flags anything not saved. The next session runs `bootstrap.md`, even on the same machine.
 
 ## Another computer
 

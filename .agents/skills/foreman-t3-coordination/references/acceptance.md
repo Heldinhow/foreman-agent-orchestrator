@@ -25,6 +25,10 @@ Review these statically now; run live exercises later through authorized indepen
 12. **Unknown grill answer:** the Router records the pending question, asks the human, then relays the sourced answer to the originating Worker. Dependent decisions remain unsettled until answered; duplicate question delivery does not cause duplicate escalation.
 13. **Approval distinction:** a grill answer from the Router cannot masquerade as human authorization; uncertainty, conflicting context or missing authority requires escalation.
 
+14. **Seven-service routing:** given a documented catalog containing accounts, catalog, orders, inventory, payments, notifications and a web client (fictional examples), a demand to change order confirmation routes from documented ownership to orders, checks relevant payment/event/client dependencies and selects actual verified T3 bindings. A name match alone is insufficient; reference-only sources cannot receive changes.
+15. **Cold-session memory:** with no previous conversation, bootstrap reads every registered project summary and the complete core records. Missing/truncated/private records produce coverage gaps and block affected work rather than an invented memory claim.
+16. **Interrupted persistence:** a material answer whose write failed remains unsaved context with a next action; later work cannot assume it is safely persisted. A missing final handoff is recovered from incremental records and live observations.
+
 ## AI Hero authoring review
 
 - The description lists distinct invocation branches and keeps model invocation enabled intentionally.

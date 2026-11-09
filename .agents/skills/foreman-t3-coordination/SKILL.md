@@ -7,7 +7,7 @@ compatibility: Requires native T3 Code thread tools; no executable dependencies.
 
 # T3 coordination
 
-Read repository `AGENTS.md` and its startup records first. Follow its responsibility and approval rules throughout. Workers are independent T3 threads; the Router maintains the coordination record.
+Read repository `AGENTS.md` first. In a new Router session, complete `references/bootstrap.md` before coordinating. Follow repository responsibility and approval rules throughout. Workers are independent T3 threads; the Router maintains the coordination record.
 
 Choose the current branch below. Run assignment steps only for new work; incoming questions and results do not require a new assignment.
 
@@ -16,13 +16,16 @@ Choose the current branch below. Run assignment steps only for new work; incomin
 1. **Reconcile.** Match the issue against recorded assignments and accessible Worker threads. For uncertain state, read `references/recovery.md` before proceeding.
    **Done:** no unresolved duplicate assignment exists; the task and its dependencies are ready under the agreed spec.
 
-2. **Discover.** Read the installed definitions of the required native thread tools through host tool discovery. If unavailable or refused, record a blocker and escalate; internal databases or shell transports are not fallback interfaces.
+2. **Route.** Read `references/routing.md` to map the demand to repository responsibilities, dependency impact and actual T3 project bindings.
+   **Done:** selected projects, rationale and impact/order are recorded; ambiguous ownership or an unresolved binding blocks the affected assignment.
+
+3. **Discover.** Read the installed definitions of the required native thread tools through host tool discovery. If unavailable or refused, record a blocker and escalate; internal databases or shell transports are not fallback interfaces.
    **Done:** the required operations, permission ceiling and operator-selected provider/model are available, or the assignment is explicitly blocked.
 
-3. **Brief.** Load `references/protocol.md` and fill its Worker brief. Honor the agreed concurrency limit; use one writer until a parallel-writing limit is agreed.
+4. **Brief.** Load `references/protocol.md` and fill its Worker brief. Honor the agreed concurrency limit; use one writer until a parallel-writing limit is agreed.
    **Done:** the brief identifies the issue, scope, acceptance criteria, dependencies, verification, authorization scope and delegating Router's verified thread link.
 
-4. **Launch.** Read `references/threads.md`. Create the independent Worker with native workspace binding and save its returned link and assignment record.
+5. **Launch.** Read `references/threads.md`. Create the independent Worker with native workspace binding and save its returned link and assignment record.
    **Done:** exactly one Worker is recorded with its actual workspace/branch, state and next action. An ambiguous launch result returns to reconciliation, not another launch.
 
 ## Message

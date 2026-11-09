@@ -20,6 +20,10 @@ The files in `orchestrator/` are the versioned, sanitized coordination memory. R
 
 Workspace onboarding and updates use `.agents/skills/foreman-setup/SKILL.md`. Its `references/memory.md` is authoritative for setup outputs, per-project/dependency records and the evidence index. Determine the actual workspace and privacy boundary before populating those records; this source repository does not yet contain a completed workspace interview or research dataset.
 
+## Session continuity
+
+`history.md` indexes consequential discussions; `handoff.md` points to the latest continuation state. The coordination skill's bootstrap and routing references define how new sessions recover memory and select repositories. This source workspace is not an initialized corporate catalog; the owner's example repositories have not been provided or inspected.
+
 ## Unresolved design work
 
 - Replacement specification and acceptance criteria.

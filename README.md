@@ -20,7 +20,7 @@ Start with [AGENTS.md](AGENTS.md), [the current direction](docs/t3-native.md) an
 
 Load [`foreman-setup`](.agents/skills/foreman-setup/SKILL.md) to initialize or refresh a workspace. It interviews the operator about the product, registers target/reference repositories, routes read-only research to independent T3 Workers and defines where sourced knowledge and open gaps are stored. Setup ends with explicit confirmation of the understood scope, not a promise of complete knowledge.
 
-The memory contract defines a context index, per-project notes, dependency records, an evidence index and setup progress alongside decisions/status. Confirm a private destination for confidential workspace findings; this public repository is not their default home. The skill is instructions, not an implemented `foreman init` CLI. Live onboarding remains untested.
+The memory contract defines a workspace catalog with repository responsibilities and T3 binding references, a context index, per-project notes, dependencies, evidence and setup progress alongside decisions/status. Discussion history and session handoff preserve consequential context between conversations. Confirm a private destination for confidential workspace findings; this public repository is not their default home. The skill is instructions, not an implemented `foreman init` CLI. Live onboarding remains untested.
 
 ## Coordination skill
 
@@ -52,7 +52,7 @@ git clone --branch docs/t3-native-orchestration https://github.com/Heldinhow/for
 cd foreman-agent-orchestrator
 ```
 
-Open this repository in T3 Code. Have the new Router read `AGENTS.md` and the three orchestrator records before assigning work. Authenticate T3/GitHub separately as needed; check current issues/PRs and whether recorded Worker threads remain accessible. Reconcile status before creating replacement Workers.
+Open this repository in T3 Code. Have the new Router read `AGENTS.md` and complete the linked cold-session bootstrap before assigning work. It reads the core memory and every registered project summary, then routes each demand through documented responsibilities/dependencies to a verified T3 project. Missing workspace records are setup gaps, not an initialized catalog. Authenticate T3/GitHub separately as needed; check current issues/PRs and whether recorded Worker threads remain accessible. Reconcile status before creating replacement Workers.
 
 Cloning transfers committed instructions and memory only. It does **not** transfer credentials, conversation history, uncommitted work, local worktrees or running processes. This repository does not yet provide automated cross-machine thread recovery.
 

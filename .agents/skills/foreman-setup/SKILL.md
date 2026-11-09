@@ -35,11 +35,13 @@ Read `references/research.md` before assigning read-only research to independent
 
 Use the file ownership and record shapes in `references/memory.md`; keep one authoritative home for each finding. Store observed facts, hypotheses and human decisions separately. Link summaries instead of duplicating detailed reports. Update setup progress after each material answer or research return so interruption does not restart the interview.
 
-**Done:** product context, per-project notes, dependency records, evidence and remaining gaps are reachable from the context index; records comply with the confirmed privacy boundary.
+**Done:** every registered source has a catalog entry linking its identity, responsibility, project note and verified or unresolved T3 binding. Product context, dependencies, evidence and gaps are reachable from the index. Material interview/research outcomes are captured in their owning records and history; the privacy boundary is preserved.
 
 ## 5. Validate shared understanding
 
 Present the operator with a concise synthesis: product goals and users, project responsibilities, critical dependency/information flows, constraints, conflicting findings and unresolved gaps. Ask for explicit confirmation or corrections. If a gap blocks intended coordination, retain a partial setup rather than declaring readiness.
+
+Before declaring readiness, use the coordination skill's bootstrap procedure to check that another Router can recover the recorded understanding and distinguish the sources without this interview's chat history.
 
 **Done:** confirmed scope and remaining limitations are recorded. Mark setup `ready` only when no blocking gap remains for that scope; otherwise record `awaiting-confirmation` or `partial` with next actions. A partially understood workspace is not authorization to begin implementation.
 
