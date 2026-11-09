@@ -4,16 +4,16 @@
 
 **Blocked by:** [001: Project skeleton, CLI seam and build](001-project-skeleton.md)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
-- [ ] **AC-50:** every line has `schemaVersion` and `eventId`, and existing lines are never altered.
-- [ ] **AC-51:** a torn final line is ignored and reported, and corruption elsewhere stops with a clear error.
-- [ ] **AC-55 (Ledger part):** paths are Workspace-relative, and a sentinel `HOME`, `USER` and the machine's hostname never appear.
-- [ ] Each line is one `O_APPEND` write followed by fsync, and `pending` is durable before `done` can be written.
-- [ ] `actionId` is deterministic from Run, Task, kind, target and head SHA.
-- [ ] State comes from a pure reducer, and unfinished actions can be listed.
+- [x] **AC-50:** every line has `schemaVersion` and `eventId`, and existing lines are never altered.
+- [x] **AC-51:** a torn final line is ignored and reported, and corruption elsewhere stops with a clear error.
+- [x] **AC-55 (Ledger part):** paths are Workspace-relative, and a sentinel `HOME`, `USER` and the machine's hostname never appear.
+- [x] Each line is one `O_APPEND` write followed by fsync, and `pending` is durable before `done` can be written.
+- [x] `actionId` is deterministic from Run, Task, kind, target and head SHA.
+- [x] State comes from a pure reducer, and unfinished actions can be listed.
 
 ## Tests
 
