@@ -26,6 +26,9 @@ const PathGlobs = z.array(
 const PositiveInt = z.number().int().positive();
 const SchemaVersion = z.literal(1);
 
+/** The Modes, least protective first, which is the order Relaxation classification compares by. */
+export const Mode = z.enum(["autonomous", "propose"]);
+
 /** The Outbound Action kinds a Gate or a Mode's allowlist can name. */
 const OutboundKind = z.enum(["push", "draft-pr", "pr", "merge", "deploy"]);
 
@@ -112,7 +115,7 @@ const GuardSchema = z
   });
 
 const RepositorySchema = z.strictObject({
-  mode: z.enum(["propose", "autonomous"]),
+  mode: Mode,
   allow: z.array(OutboundKind),
 });
 

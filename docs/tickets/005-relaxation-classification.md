@@ -4,13 +4,13 @@
 
 **Blocked by:** [003: policy/defaults.yaml and Policy Layers](003-policy-layers.md)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
-- [ ] **AC-42:** every Policy schema leaf is classified `safety` or `neutral` in code, and an unclassified path counts as a Relaxation at runtime.
-- [ ] **AC-94:** classification is correct for each kind of leaf in both directions, for a change introduced by a higher layer, and for moving a value between layers with no change to the result.
-- [ ] **AC-95 (deviations part):** `foreman policy show --deviations` lists every difference from the Safety Defaults, with its layer.
+- [x] **AC-42:** every Policy schema leaf is classified `safety` or `neutral` in code, and an unclassified path counts as a Relaxation at runtime.
+- [x] **AC-94:** classification is correct for each kind of leaf in both directions, for a change introduced by a higher layer, and for moving a value between layers with no change to the result.
+- [x] **AC-95 (deviations part):** `foreman policy show --deviations` lists every difference from the Safety Defaults, with its layer.
 
 ## Tests
 

@@ -1,5 +1,7 @@
 import { stringify } from "yaml";
+import { deviationReport, type Deviation } from "../../policy/deviations.ts";
 import type { PolicyLayer } from "../../policy/merge.ts";
+import type { PolicySet } from "../../policy/policy-set.ts";
 import { NAME_PATTERN } from "../../policy/schema.ts";
 import type { Command } from "../app.ts";
 import { parseCommandArgs, UsageError } from "../errors.ts";
@@ -10,8 +12,29 @@ function layerLabel(layer: PolicyLayer): string {
   return `${layer.name} (${layer.file})`;
 }
 
+const shown = (value: unknown) => (value === undefined ? "(absent)" : JSON.stringify(value));
+
+function deviationLine({ key, before, after, effect, unclassified, setBy }: Deviation): string {
+  const label = effect === "relaxation" ? "RELAXATION" : effect;
+  const note = unclassified ? " (unclassified)" : "";
+  return `${label}${note} ${key}: ${shown(before)} -> ${shown(after)}\n  set by: ${layerLabel(setBy)}\n`;
+}
+
+function printDeviations(set: PolicySet, project: string | undefined, writeOut: (text: string) => void) {
+  const scopes = deviationReport(set, project);
+  if (scopes.length === 0) writeOut("No differences from the Safety Defaults.\n");
+
+  // A heading only tells scopes apart, and `--project` shows just the one.
+  const headed = project === undefined && scopes.some((scope) => scope.project !== undefined);
+  for (const { project: scope, deviations } of scopes) {
+    if (headed) writeOut(scope === undefined ? "# All Projects\n" : `# Project ${scope}\n`);
+    deviations.forEach((deviation) => writeOut(deviationLine(deviation)));
+  }
+}
+
 const showCommand: Command = (args, deps) => {
   const { values } = parseCommandArgs(args, {
+    deviations: { type: "boolean" },
     dir: { type: "string" },
     effective: { type: "boolean" },
     explain: { type: "string" },
@@ -20,10 +43,18 @@ const showCommand: Command = (args, deps) => {
   if (values.project !== undefined && !NAME_PATTERN.test(values.project)) {
     throw new UsageError(`"${values.project}" isn't a valid Project name`);
   }
+  if (values.deviations && (values.effective || values.explain !== undefined)) {
+    throw new UsageError("--deviations can't be combined with --effective or --explain");
+  }
 
   const { set, overrideFile } = policySetFor(values.dir, deps);
   const effective = set.effective(values.project);
   const { writeOut } = deps.terminal;
+
+  if (values.deviations) {
+    printDeviations(set, values.project, writeOut);
+    return ExitCode.Success;
+  }
 
   if (values.explain !== undefined) {
     const key = values.explain;
@@ -72,7 +103,9 @@ export const policyCommand: Command = (args, deps) => {
   const [name, ...rest] = args;
   const subcommand = name === undefined ? undefined : subcommands.get(name);
   if (subcommand === undefined) {
-    throw new UsageError("Usage: foreman policy show [--effective] [--explain <key>] [--project <name>] [--dir <path>]");
+    throw new UsageError(
+      "Usage: foreman policy show [--effective] [--explain <key>] [--project <name>] [--deviations] [--dir <path>]",
+    );
   }
   return subcommand(rest, deps);
 };

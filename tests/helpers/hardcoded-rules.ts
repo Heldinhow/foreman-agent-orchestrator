@@ -57,6 +57,11 @@ function withoutModeMechanism(code: string): string {
     .replace(/(?:[!=]==|\bcase)\s*(["'`])(?:propose|autonomous)\1/g, "");
 }
 
+/** A Policy key's own path, such as `adapters.*.env.passthrough`, names a setting and isn't a glob. */
+function withoutPolicyKeys(code: string): string {
+  return code.replace(/\badapters\.\*\.env\.\w+/g, "");
+}
+
 export async function findHardcodedRules(
   directory: string,
   defaultsFile = join(repoRoot, "policy", "defaults.yaml"),
@@ -72,7 +77,7 @@ export async function findHardcodedRules(
       for (const [match] of text.matchAll(pattern)) findings.push({ file, kind, match });
     };
 
-    for (const glob of globs) report("deny glob", globPattern(glob), unescaped);
+    for (const glob of globs) report("deny glob", globPattern(glob), withoutPolicyKeys(unescaped));
     for (const [kind, pattern] of PATTERNS) report(kind, pattern, withoutModeMechanism(unescaped));
   }
   return findings.sort((a, b) => `${a.file}${a.match}`.localeCompare(`${b.file}${b.match}`));

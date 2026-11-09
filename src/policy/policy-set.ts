@@ -45,6 +45,8 @@ export interface EffectivePolicy {
   policy: Policy;
   /** One entry per value at or under `key`. Empty if no layer sets it. */
   explain(key: string): KeyExplanation[];
+  /** The highest layer that set a key or, failing that, the nearest key above it. */
+  setBy(key: string): PolicyLayer | undefined;
 }
 
 export interface PolicySet {
@@ -57,14 +59,13 @@ export interface PolicySet {
   effective(project?: string): EffectivePolicy;
 }
 
-/** The highest layer that set a key or, failing that, the nearest key above it. */
-function fileFor(key: string, origins: Origins, fallback: string): string {
+function layerFor(key: string, origins: Origins): PolicyLayer | undefined {
   const path = key.replace(/\[\d+\].*$/, "").split(".");
   for (let length = path.length; length > 0; length--) {
     const layer = origins.get(path.slice(0, length).join("."))?.at(-1);
-    if (layer !== undefined) return layer.file;
+    if (layer !== undefined) return layer;
   }
-  return fallback;
+  return undefined;
 }
 
 function collectValues(value: unknown, key: string): { key: string; value: unknown }[] {
@@ -89,7 +90,7 @@ function mergeAndValidate(layers: readonly PolicyLayer[]): EffectivePolicy {
   const highest = (layers.at(-1) as PolicyLayer).file;
   const attributed = (issue: { key?: string; reason: string }): ConfigIssue => ({
     ...issue,
-    file: fileFor(issue.key ?? "", origins, highest),
+    file: layerFor(issue.key ?? "", origins)?.file ?? highest,
   });
 
   const result = PolicySchema.safeParse(merged);
@@ -108,6 +109,7 @@ function mergeAndValidate(layers: readonly PolicyLayer[]): EffectivePolicy {
         return { ...entry, setBy: chain.at(-1) as PolicyLayer, overrides: chain.slice(0, -1).reverse() };
       });
     },
+    setBy: (key) => layerFor(key, origins),
   };
 }
 
