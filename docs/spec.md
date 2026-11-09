@@ -19,8 +19,9 @@ Foreman gives you "your team of agents with an engineering process, not a chat w
 - **Onboarding:** `foreman init` interviews the Operator one question at a time and scans their repositories read-only. It proposes a Workspace Graph, then writes the configuration, Context Files and Model Assignment.
 - **Planning:** `foreman run "<intent>"` takes the Intent through grill, spec and tickets, then orders the resulting Tasks by the Workspace Graph.
 - **Execution:** each Task runs in its own git worktree under an atomic Task Lock, using a Worker with the right Role and model.
-- **Proof:** Foreman runs verification itself and closes a Task only with Evidence. It then verifies the combined change across Projects.
-- **Control:** nothing leaves the machine without a human Approval through an authenticated Human Channel, unless the repository has explicitly allowlisted a low-risk action. Merge and deploy always need a human. The Safety Floor is enforced in code, so no config, prompt or Lesson can relax it.
+- **Proof:** Foreman runs verification itself and, by default, closes a Task only with Evidence. It then verifies the combined change across Projects.
+- **Control:** by default, nothing leaves the machine without a human Approval through an authenticated Human Channel, unless the repository has explicitly allowlisted a low-risk action. Merge and deploy need a human by default.
+- **Adaptation:** nothing is hard-locked. Every rule, including those safe values, lives in editable, versioned Policy files. The Policy Owner can change how Foreman handles a situation by editing a file or by saying "from now on, do X when Y". Each change is shown as a diff, confirmed, recorded and reversible, and it applies to new Tasks immediately. Only the Policy Owner can relax a Safety Default. Agents, Worker output, comments and Lessons can only propose.
 - **Recovery:** every action is written ahead to an append-only Ledger, so `foreman resume` can reconcile after a crash rather than repeat work blindly.
 - **Learning:** resolved failures become deduplicated Lessons that are retrieved and injected into later similar work. Lessons can suggest Change Proposals, which go through the same Approval gate.
 
@@ -100,8 +101,8 @@ No model provider or coding agent is required (ADR-0006), and Foreman has no tel
 
 57. As an Operator, I want Propose Mode by default, so that nothing leaves the machine until I say so.
 58. As an Operator, I want to allowlist pushing to Foreman-owned branches and opening draft PRs per repository, so that low-risk steps can flow on trusted repositories.
-59. As a Security Reviewer, I want merge and deploy to need a human in every Mode, so that no configuration can automate them.
-60. As a Security Reviewer, I want an agent's message or comment never to count as Approval, so that a Worker can't authorize itself.
+59. As a Security Reviewer, I want merge and deploy to need a human in every Mode by default, so that automating them takes a deliberate, recorded decision by the Policy Owner.
+60. As a Security Reviewer, I want an agent's message or comment not to count as Approval by default, and never to count for a Policy Change, so that a Worker can't authorize itself or loosen the rules.
 61. As a Security Reviewer, I want `foreman approve` to refuse a Worker and require a typed nonce on a TTY, so that casual forgery fails.
 62. As a Security Reviewer, I want GitHub Approval to require an allowlisted human distinct from Foreman's token identity, so that a comment posted with the token can't pass as human.
 63. As a Security Reviewer, I want an Approval bound to the exact SHA and invalidated by any change, so that approved code is the code that ships.
@@ -111,7 +112,7 @@ No model provider or coding agent is required (ADR-0006), and Foreman has no tel
 67. As a Security Reviewer, I want the Worker's environment built from an allowlist, so that a new secret on the machine isn't exposed by default.
 68. As a Security Reviewer, I want an optional OS Sandbox, so that I can raise the protection on a high-value machine.
 69. As a Security Reviewer, I want the README to state the limits of each layer, so that I can assess the risk accurately.
-70. As a Security Reviewer, I want config that violates the Safety Floor to fail validation, so that it can't be configured away.
+70. As a Security Reviewer, I want any change that relaxes a Safety Default flagged and applied only after the Policy Owner confirms it, so that no safety rule weakens silently.
 71. As a Security Reviewer, I want no telemetry and no network use outside Remotes and Workers, so that Foreman can pass a corporate review.
 
 ### Recovery and audit
@@ -150,6 +151,24 @@ No model provider or coding agent is required (ADR-0006), and Foreman has no tel
 94. As a Contributor, I want `CONTRIBUTING.md` and a test suite with no external dependencies, so that I can contribute with no API keys or accounts.
 95. As an Adapter author, I want a shared contract test suite, so that I can prove my Adapter behaves correctly.
 
+### Changing how Foreman behaves
+
+96. As a Policy Owner, I want every rule in editable files with safe defaults, so that Foreman can adapt as my context changes without a fork.
+97. As a Policy Owner, I want layers from built-in up to user override, so that I can set a rule at the right level.
+98. As a Policy Owner, I want to see which layer set any value, so that I can understand why Foreman behaved as it did.
+99. As a Policy Owner, I want to say "from now on, do X when Y" and get a diff to confirm, so that I can change behaviour without learning the schema.
+100. As a Policy Owner, I want to edit a file by hand and confirm the diff, so that I can keep working in my editor.
+101. As a Policy Owner, I want a Relaxation flagged prominently before I confirm it, so that I always know when I'm reducing protection.
+102. As a Policy Owner, I want an accepted change to apply to new Tasks with no restart, so that a correction takes effect straight away.
+103. As a Policy Owner, I want in-flight Tasks to keep the Policy they started with, so that the rules don't shift under running work.
+104. As a Policy Owner, I want `foreman policy history` and `foreman policy revert`, so that I can undo a change I regret.
+105. As an Auditor, I want who, when, why and before and after hashes for each Policy Change, so that I can reconstruct how the rules evolved.
+106. As a Security Reviewer, I want a Worker's edit to a Policy file to have no effect, so that an agent can't change the rules by writing to disk.
+107. As a Security Reviewer, I want a policy file inside a Project's repository ignored, so that repository content can't set the rules.
+108. As a Security Reviewer, I want `foreman status` to list every deviation from the Safety Defaults, so that I can see at a glance how protected a Workspace is.
+109. As a Policy Owner, I want a Foreman upgrade's new defaults shown as a diff for me to confirm, so that an update can't quietly change behaviour.
+110. As a Policy Owner, I want to make a change myself even after a Lesson's proposal of it was rejected, so that the agent limit doesn't limit me.
+
 ## Implementation Decisions
 
 ### Modules
@@ -161,22 +180,23 @@ Each module should present a small interface over substantial behaviour. They ar
 | **Config** | Load, parse and validate all Workspace config with zod. Report errors with file, key and reason. |
 | **Workspace Graph** | Normalize Edges, compute order and impact, detect cycles, render Mermaid. |
 | **Ledger** | Append events, replay into derived state, list unfinished actions. |
+| **Policy** | Merge Policy Layers, manage Policy Snapshots, classify Relaxations, and apply, record and revert Policy Changes. |
+| **Check Engine** | Evaluate Policy rules at each checkpoint and return a decision naming the rule and Policy Layer. |
 | **Locks** | Acquire, renew, take over and release Task and Run locks. |
 | **Worktrees** | Create Task worktrees and read-only views, capture and salvage work, clean up. |
-| **Guard Policy** | Build Worker environments, deny lists and hooks, and hand policy to Adapters. |
+| **Guard Policy** | Build Worker environments and hooks from Policy, and hand the rules to Adapters. |
 | **Adapters** | The contract, registry, OpenCode Adapter and stubs. |
 | **Prompts and Context** | Resolve prompts by locale and assemble Worker context. |
 | **Pipeline Engine** | The deterministic state machine that runs Steps and evaluates Gates. |
 | **Router** | Validate routing output, order Tasks, assign Roles, answer from recorded decisions when enabled. |
 | **Verification** | Run commands, record Evidence, perform the diff check. |
 | **Approvals** | Human Channels, nonces, binding, expiry. |
-| **Safety Floor** | Validate config against the floor and decide whether a change relaxes it. |
 | **Outbound Executor** | The only code path that performs Outbound Actions. |
 | **Remote** | The interface and the GitHub implementation. |
 | **Inbox** | Questions, Gate requests, notices and surfaced remote events. |
 | **Polling** | Optional read-only event intake. |
 | **Lessons** | Capture, fingerprint, deduplicate, score, redact, retrieve. |
-| **Change Proposals** | Generate, floor-check, store and apply. |
+| **Change Proposals** | Generate, reject Relaxations, store and apply. |
 | **Scanner** | Read-only repository inspection. |
 | **Init** | Scripted interview, answers file, file generation, `--update`. |
 | **CLI** | Commands, exit codes and the composition root. |
@@ -193,11 +213,13 @@ This layout is the product's on-disk contract (ADR-0015). `foreman init --dir <p
     graph.md               rendered Mermaid (generated)
     context.md             Workspace context, injected into every Worker
     projects/<project>.md  per-Project notes, injected when that Project is in scope
+    projects/<project>.yaml  Project Policy Layer (optional)
     prompts/<locale>/      optional prompt overrides
   memory/                  always gitignored
     ledger.jsonl
     lessons.jsonl
     proposals.jsonl
+    policy/                accepted Policy Snapshots, content-addressed
     locks/
     runs/<runId>/          artifacts, evidence, inbox bodies, patches, views, worktrees
     cursors/
@@ -205,12 +227,14 @@ This layout is the product's on-disk contract (ADR-0015). `foreman init --dir <p
   .gitignore               generated, covers memory/ and .env
 ```
 
+Two other Policy locations sit outside the Workspace: the shipped `policy/defaults.yaml` in Foreman's installation, and the user override at `$XDG_CONFIG_HOME/foreman/override.yaml` (or `~/.config/foreman/override.yaml`).
+
 ### CLI
 
 | Command | Purpose |
 |---|---|
 | `foreman init [--dir] [--repo <path\|url>]... [--from <file>] [--yes] [--update]` | Onboarding |
-| `foreman validate` | Validate all config and report Adapter and floor status |
+| `foreman validate` | Validate all config and report Adapter status, drift from the accepted Policy, and deviations from the Safety Defaults |
 | `foreman graph [impact <project>]` | Print the graph, or a Project's transitive Downstream |
 | `foreman run "<intent>"` | Start a Run |
 | `foreman resume [<runId>]` | Reconcile and continue |
@@ -220,6 +244,10 @@ This layout is the product's on-disk contract (ADR-0015). `foreman init --dir <p
 | `foreman approve <actionId\|runId>` / `foreman reject <actionId\|runId>` | Decide Gates and Outbound Actions |
 | `foreman lessons list\|show\|approve\|reject` | Manage Lessons |
 | `foreman proposals list\|show\|approve\|reject` | Manage Change Proposals |
+| `foreman policy show [--effective] [--explain <key>] [--deviations]` | Show Policy, which layer set a key, and differences from the Safety Defaults |
+| `foreman policy change "<text>"` | Draft a Policy Change from natural language, then confirm it |
+| `foreman policy apply [--from <file>] [--from-pr <number>] [--yes]` | Show and accept changed Policy files or a drafted diff |
+| `foreman policy history` / `foreman policy revert <changeId>` | List and undo Policy Changes |
 | `foreman poll` | One-shot remote read, if polling is enabled |
 
 Exit codes: `0` success, `1` runtime error, `2` usage or invalid config, `3` waiting on a human, `4` Run halted. Exit code `3` is a normal result, so scripts can tell waiting apart from failing.
@@ -245,7 +273,7 @@ projects:
     baseRef: main
     link: bun link                # optional, wires this Project to an unmerged Upstream
     copyFiles: [fixtures/local.json]  # optional, untracked files for worktrees, checked against the deny list
-    deploy:                       # optional, always needs a human Approval
+    deploy:                       # optional, needs a human Approval by default
       command: ./scripts/deploy.sh
       check: ./scripts/deploy-status.sh   # optional, lets resume reconcile an interrupted deploy
       credentialEnv: [EXAMPLE_DEPLOY_TOKEN]   # never passed to Workers
@@ -266,6 +294,8 @@ integration:
 **Edge direction.** For `depends-on`, `calls-api`, `shares-lib` and `consumes-event`, `from` is Downstream and `to` is Upstream. For `publishes-event`, `from` is Upstream and `to` is Downstream. The Workspace Graph module normalizes this, so nothing else needs to know.
 
 **`foreman.yaml`**
+
+This is the Workspace Policy Layer. It holds only what differs from the built-in defaults, so the keys below are illustrative. Project and user-override layers use the same schema, limited to the keys valid at that level.
 
 ```yaml
 schemaVersion: 1
@@ -289,14 +319,19 @@ roles:
     paths: { allow: ["**"], forbid: ["infra/**"] }
 pipeline: { ... }                 # see Pipeline
 policies:
-  guard: { deny: [], exceptions: [".env.example"] }
+  guard:
+    rules:                        # merged by rule ID; see Guard Policy and Check Engine
+      deny-secret-files: { except: [".env.example", "tests/fixtures/*.pem"] }
   sandbox: none                   # none | bwrap
   repositories:
     catalog-api: { mode: propose }
     orders-api: { mode: autonomous, allow: [push, draft-pr] }
 approvals:
+  ownerAlias: operator
   expiryHours: 24
-  github: { enabled: false, allowlist: [{ alias: approver-1, login: example-human-login }] }
+  github:
+    enabled: false
+    allowlist: [{ alias: approver-1, login: example-human-login, policyOwner: false }]
 remote: { type: github, apiBaseUrl: "https://api.github.com" }
 polling: { enabled: false, intervalSeconds: 300 }
 lessons: { topK: 5, tokenCap: 1500, minOccurrences: 2 }
@@ -310,7 +345,7 @@ limits: { maxActiveWorkers: 3, maxRounds: 3, workerTimeoutMinutes: 60 }
 - Every Project declares at least one verification command, since a Task can't otherwise close.
 - `FOREMAN_WORKTREE_<PROJECT>` names don't collide after normalization.
 - A cycle of `depends-on` or `shares-lib` Edges is an error. A `calls-api` or event cycle is a warning (ADR-0027).
-- Each Safety Floor rule below holds.
+- Unknown keys are errors, so a misspelled safety key can't silently leave a different value in force.
 
 ### Model Assignment
 
@@ -385,7 +420,7 @@ The general test suite uses a fake `opencode` executable replaying the captured 
 
 ### Pipeline
 
-The Pipeline is linear, declared in YAML and interpreted by the engine. The default implements the AIHero flow:
+The Pipeline is linear, declared in YAML and interpreted by the engine. The default ships in `policy/defaults.yaml` and implements the AIHero flow:
 
 ```yaml
 pipeline:
@@ -405,10 +440,11 @@ pipeline:
 ```
 
 - **Gate types:** `human`, `evidence`, `diff-check`, `review-verdict`, `integration`, `outbound`, and `command` for custom checks. A `command` Gate runs in the scrubbed environment and passes on exit code 0.
-- **System Steps:** `routing` and `lesson-extraction` belong to the core. They're assignable in Model Assignment but not declared in the Pipeline.
-- **Custom Pipelines:** Steps can be added, removed or re-prompted, provided that exactly one Step has `produces: tasks`, and that any `scope: task, access: write` Step carries `evidence` and `diff-check` Gates.
+- **System Steps:** `routing`, `lesson-extraction` and `policy-drafting` belong to the core. They're assignable in Model Assignment but not declared in the Pipeline.
+- **Custom Pipelines:** Steps can be added, removed or re-prompted, provided that exactly one Step has `produces: tasks`. Removing an `evidence`, `diff-check`, `human` or `outbound` Gate, or changing a read-only Step to `write`, is a Relaxation.
 - **Read-only Steps** run against a generated directory of detached, per-Project views at each `baseRef`, not in the Operator's checkouts. That way they can't see untracked secrets. After the Step, Foreman checks the views with git, and any modification fails the round, even if the Adapter claims read-only support.
-- **Review verdict:** a review result is `{verdict: approve|changes, findings[]}`. It's a Gate input and is never an Approval.
+- **Review verdict:** a review result is `{verdict: approve|changes, findings[]}`. It's a Gate input and isn't an Approval under the Safety Defaults.
+- **Pinning:** a Run's Pipeline shape is fixed at the Run's start, and each new Task uses the Policy current when it starts (ADR-0056).
 
 **State flow.** Run states are `running`, `waiting_human`, `halted`, `completed` and `abandoned`. A Task moves through the states below, each derived from the Ledger:
 
@@ -487,35 +523,47 @@ Verification runs the Project's `build`, `test` and `verify` commands in order a
 
 - The diff is non-empty.
 - Changed paths are within the Role's `paths`, and none are forbidden.
-- There are no secret patterns. Built-in patterns are on the Safety Floor, and config may only add patterns or allow one exact finding by its fingerprint.
+- There are no secret patterns. Default patterns ship in `policy/defaults.yaml`. Allowing one exact finding by its fingerprint and removing a pattern are both Relaxations.
 - Deleted test files and newly added skip or only markers are flagged for the reviewer. Flags don't fail the Gate by themselves.
 
 **Integration Verification** runs `integration.verify` after all Tasks are closed, with `FOREMAN_WORKTREE_<PROJECT>` set for every affected Project.
 
-### Guard Policy and containment
+### Guard Policy and Check Engine
 
-These implement ADR-0035, ADR-0036 and ADR-0037.
+These implement ADR-0035, ADR-0036, ADR-0037 and ADR-0058.
 
-**Default deny globs:** `.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa*`, `id_ed25519*`, `.netrc`, `.npmrc`, `.pypirc`, the Workspace's `memory/`, and the `foreman` command. `.env.example`, `.env.sample` and `.env.template` are default exceptions. Further exceptions are explicit config, and the `.env` deny itself can't be removed.
+**Check Engine.** Guard behaviour is `evaluate(checkpoint, facts, policySnapshot)`, which returns a decision of `allow`, `deny`, `flag` or `require-approval` and names the rule and Policy Layer that produced it. Decisions with effects are recorded in the Ledger. The code calls the engine at checkpoints such as `worktree.copy`, `worktree.tracked`, `scan.read`, `env.passthrough`, `diff.path`, `diff.content`, `task.close` and `outbound.<kind>`, and holds no deny list, credential name or secret pattern of its own. Rules look like this:
 
-**Worker environment.** The environment is built only from an allowlist and is never inherited:
+```yaml
+guard:
+  rules:
+    deny-secret-files:
+      checkpoints: [worktree.copy, worktree.tracked, scan.read, adapter.render, diff.path]
+      match: { paths: [".env", ".env.*", "*.pem", "*.key"] }
+      except: [".env.example", ".env.sample", ".env.template"]
+      effect: deny
+```
 
-- `PATH`, `LANG`, `LC_*`, `TERM`, `TMPDIR` and `HOME`.
-- `FOREMAN_WORKER=1`, `FOREMAN_RUN_ID` and `FOREMAN_TASK_ID`.
-- `FOREMAN_WORKTREE_*` for Projects in the Task's scope.
-- `GH_CONFIG_DIR` set to an empty directory and `GIT_TERMINAL_PROMPT=0`.
-- `GIT_CONFIG_*` carrying `core.hooksPath`, which rejects pre-push and chains other hooks to the Project's own.
-- `env.passthrough` names declared by the Adapter.
+The Policy schema requires a rule set for every checkpoint, so a missing rule can't quietly mean "allow". Foreman stops if `policy/defaults.yaml` is missing or invalid.
 
-**Passthrough refusal.** Config validation refuses to pass `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`, `SSH_AUTH_SOCK`, any `FOREMAN_*` name, or any name a Remote or deploy config declares as a credential.
+**Safety Defaults for the guard**, all in `policy/defaults.yaml`:
 
-**Foreman's own git use.** A Worker can edit a repository's shared git config and tracked hook directories, so anything Foreman runs must not execute them with its privileges:
+- **Denied paths:** `.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa*`, `id_ed25519*`, `.netrc`, `.npmrc`, `.pypirc` and the Workspace's `memory/`, with `.env.example`, `.env.sample` and `.env.template` excepted.
+- **Denied command:** `foreman`.
+- **Worker environment allowlist:** `PATH`, `LANG`, `LC_*`, `TERM`, `TMPDIR` and `HOME`.
+- **Never passed through:** `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`, `SSH_AUTH_SOCK`, and any name that a Remote or deploy config declares as a credential.
+- **Git settings in the Worker's environment:** `GH_CONFIG_DIR` set to an empty directory, `GIT_TERMINAL_PROMPT=0`, and `GIT_CONFIG_*` carrying `core.hooksPath`, which rejects pre-push and chains other hooks to the Project's own.
+- **Adapter enforcement:** an Adapter with `enforcesPolicy: false` won't start without `allowUnenforced: true`. The opt-in is logged at each start and shown as a warning in `foreman status`.
+
+Changing any of these is a Relaxation or a tightening like any other key.
+
+**Set by the mechanism, not Policy.** Each Worker's environment is never inherited, and it always gets `FOREMAN_WORKER=1`, `FOREMAN_RUN_ID` and `FOREMAN_TASK_ID`, plus `FOREMAN_WORKTREE_*` for Projects in scope. `FOREMAN_WORKER` is what the Human Channel checks rely on, so it can't be removed.
+
+**Foreman's own git use.** A Worker can edit a repository's shared git config and tracked hook directories, so anything Foreman runs must not execute them with its privileges. These are Safety Defaults under `guard.git`:
 
 - Foreman's git commands override exec-capable config (`core.hooksPath`, `core.fsmonitor`, `core.sshCommand` and `core.pager`).
-- Project hooks never run during Foreman's approved pushes.
+- Project hooks don't run during Foreman's approved pushes.
 - Foreman records a hash of each repository's git config at the start of a Run. A change blocks Outbound Actions and raises an Inbox item.
-
-**Enforcement refusal.** An Adapter with `enforcesPolicy: false` won't start without `allowUnenforced: true`. The opt-in is logged at each start and shown as a warning in `foreman status`.
 
 **Sandbox.** `sandbox: bwrap` wraps Workers and verification commands in bubblewrap:
 
@@ -530,18 +578,27 @@ If bubblewrap is missing or the platform isn't Linux, `sandbox: bwrap` fails val
 
 ### Approvals and the Outbound Executor
 
-These implement ADR-0038 to ADR-0043.
+These implement ADR-0038 to ADR-0043, as amended by ADR-0051.
 
 The **Outbound Executor** is the only code path that performs push, open PR, merge or deploy. For each action it:
 
 1. Computes `actionId` from Run, Task, kind, target and head SHA.
 2. Runs reconciliation and stops if the action is already done.
-3. Checks that the SHA and repository git config are unchanged.
-4. Requires a valid Approval, or for `push` and `draft-pr` only, that the repository's Mode allowlists it.
-5. Refuses a target that isn't allowed. Pushes use explicit refspecs to `foreman/*` branches and are never forced.
+3. Loads the Policy current at this moment and records its hash on the action (ADR-0056).
+4. Asks the Check Engine at `outbound.<kind>`, and acts on the decision: `require-approval` needs a valid Approval, `allow` proceeds, and `deny` refuses.
+5. Performs any other Policy checks, such as an unchanged SHA and git config.
 6. Appends `pending` and fsyncs, performs the action, then appends `done`.
 
-Merge happens only through the Remote, and deploy runs the configured `deploy.command`. Since this check lives in the Executor rather than in the Pipeline, removing a Gate from YAML can't skip it.
+Merge happens only through the Remote, and deploy runs the configured `deploy.command`.
+
+**Safety Defaults for Outbound Actions**, all in `policy/defaults.yaml`:
+
+- The Mode is `propose` for every repository.
+- `push`, `pr`, `merge` and `deploy` all `require-approval`.
+- In Autonomous Mode, the allowlist may contain `push` and `draft-pr`. Adding `merge` or `deploy` is a Relaxation, and valid once the Policy Owner has confirmed it.
+- Pushes go to `foreman/*` by explicit refspec and are never forced. Widening either is a Relaxation.
+- An Approval is invalidated by any change to the SHA and expires after 24 hours.
+- `approvals.acceptAgentMessages` is `false`. If the Policy Owner sets it to `true`, a Worker's `foreman-approve` block can satisfy `require-approval` for an Outbound Action. The Ledger records this under the channel `agent-message`, and `foreman status` keeps warning about it. It never applies to a Policy Change.
 
 **Local channel, `foreman approve`.** The command refuses unless all of these hold:
 
@@ -557,17 +614,69 @@ Merge happens only through the Remote, and deploy runs the configured `deploy.co
 
 A GitHub Approval can only be given on an existing PR, so it covers actions on that PR: merge, a further push to its branch, and deploy tied to it. The first push and the opening of a PR need the local channel or an allowlisted Autonomous Mode. Foreman checks for GitHub Approvals on `foreman resume`, on `foreman poll` and while supervising.
 
-### Safety Floor
+The local channel's checks and the GitHub identity rule define what "authenticated" means, so they are part of the mechanism rather than Policy (ADR-0053).
 
-Rules are listed in ADR-0044. Enforcement happens at three levels, so that no single check is relied on:
+### Policy
 
-1. **Config validation** rejects a floor violation at load time.
-2. **Runtime enforcement** in the Outbound Executor, Verification and the Guard Policy holds regardless of config or prompts.
-3. **Change Proposal check**, described under Change Proposals, rejects relaxing changes before they can be queued.
+This section implements ADR-0051 to ADR-0059.
 
-Every leaf in the config schema is classified as either `safety` or `neutral`. A test fails if any leaf is unclassified, so a new option can't quietly bypass the floor.
+**What stays in code.** Only the mechanism: who can apply a Relaxation, the diff, confirmation, Ledger and revert path, and per-Task snapshots. Supporting these are Human Channel authentication, schema validation, Relaxation classification, Check Engine evaluation, the Ledger and locks, and the single Outbound Executor path. No Policy key can disable any of them. All rules are in Policy.
 
-Safety-classified leaves include guard denies and exceptions, secret patterns, `sandbox`, `allowUnenforced`, `env.passthrough`, Modes and allowlists, Approval settings, Gates, verification commands, Role `tools`, `projects` and `paths`, `lessons.minOccurrences`, `router.answerFromDecisions`, and adapter or remote `module` paths.
+**Layers.** Effective Policy merges built-in, Workspace, Project and user override, with later layers winning. Maps merge deeply, and named rules merge by ID. A plain list in a higher layer replaces the lower one. `foreman policy show --explain <key>` names the layer that set a key. A policy file in a Project's repository is ignored.
+
+**Policy Set and accepted state.** Foreman hashes the Policy Set: `policy/defaults.yaml`, everything in `foreman/` except the generated `graph.md`, and the user override. Each accepted Policy Set is stored as a content-addressed Policy Snapshot, containing the source files and the merged result. The Ledger's latest `policy.changed` event names the current accepted hash.
+
+Foreman always runs from the accepted snapshot, never directly from files. A file that differs from it has no effect. Foreman reports the drift in `foreman status` and in an Inbox notice, and each command warns about it. A snapshot whose content doesn't match its hash in the Ledger stops Foreman with a clear error. A Workspace with no accepted snapshot runs on the built-in layer alone.
+
+**Applying a change.** All routes end in the same path:
+
+1. A candidate change is produced: from changed files (`foreman policy apply`), a drafted diff (`foreman policy apply --from <file>`, `foreman policy change`), a revert, `foreman init`, a Foreman upgrade or an approved Change Proposal.
+2. Foreman merges and validates the result. Invalid Policy is refused as a whole, so no part of it applies.
+3. Foreman classifies the change and shows the full diff. Each Relaxation is marked `RELAXATION`, with its before and after values, above the rest of the diff.
+4. The change is confirmed:
+   - A **Relaxation** needs a Human Channel: TTY and a nonce bound to the diff's hash, or GitHub as described below.
+   - **Any other change** needs interactive confirmation, or `--yes`, which refuses Relaxations. This allows scripted tightening and neutral updates.
+   - Every form refuses under the Worker marker, using the same environment and ancestor checks as `foreman approve`.
+5. Foreman stores the snapshot and appends `policy.changed` with `changeId`, `origin` (`file-edit`, `natural-language`, `change-proposal`, `revert`, `init` or `upgrade`), channel, owner alias, time, why, before and after hashes, and the Relaxation key names.
+
+The `why` is requested at confirmation and has secret patterns redacted. It's the one free-text field the Ledger stores, because it's the Policy Owner's own words. The user override appears only as the layer name, so its path can't leak a username.
+
+**GitHub confirmation.** `foreman policy apply --from-pr <number>` applies when the Workspace's `foreman/` directory is versioned in a repository and the checkout's clean `HEAD` matches the head of that PR. The PR must have an `APPROVED` review at that exact commit from an allowlisted account of type `User` with `policyOwner: true`. Any other allowlisted reviewer can approve Outbound Actions but can't confirm a Policy Change.
+
+**Natural-language changes.** `foreman policy change "<text>"` runs the read-only `policy-drafting` Step. The Worker gets the text, the current effective Policy and the schema, and returns a `foreman-result` containing structured key changes and unified diffs for free-text files, with base hashes. An invalid draft gets the usual one corrective `send`, and a second failure ends the command with nothing changed. A valid draft enters the path above at step 2, with the owner's text as the default `why`. The command refuses under the Worker marker.
+
+The Foreman skill can run this command or write a draft file for `foreman policy apply --from`. The confirmation still happens on the Policy Owner's TTY.
+
+**Hot reload and snapshots.** There's no daemon to restart. The supervisor reads the current accepted hash each time it starts a Task or a Step, so a change accepted in another terminal applies to the next one.
+
+| Thing | Policy it uses |
+|---|---|
+| A Task, for its whole life, including rounds and resume | The snapshot from when it was locked, with the hash on its `task.locked` event |
+| A new Task in an existing Run | The current accepted Policy |
+| The Run's Pipeline shape | The snapshot from the Run's start |
+| A Run-level Step | The current accepted Policy when the Step starts |
+| An Outbound Action | The current accepted Policy when attempted, with the hash on the action |
+
+To stop in-flight work under an old Policy, the Policy Owner uses `foreman abandon`.
+
+**Classification.** Every leaf in the Policy schema is classified in code as `safety` or `neutral`, and each `safety` leaf has a direction:
+
+| Kind of leaf | Relaxes when |
+|---|---|
+| Deny-style list (paths, patterns, never-pass names) | An entry is removed |
+| Allow-style list (exceptions, passthrough, Mode allowlist, Role scope, allowlisted approvers) | An entry is added |
+| Named rule | It's removed or disabled, or its effect moves towards `allow` |
+| Ordered enum (Mode, sandbox, check effect) | It moves towards less protection |
+| Boolean or number with a safe direction | It moves that way |
+| Opaque value (verification commands, `deploy.command`, adapter `module`, Gates) | It changes at all |
+
+Classification compares the merged result per Project, so moving a value between layers isn't a Relaxation in itself, and a higher layer can't hide one. A test fails if any schema leaf is unclassified, and at runtime an unclassified path counts as a Relaxation.
+
+Safety-classified leaves include guard rules, secret patterns, `sandbox`, `allowUnenforced`, `env.passthrough`, Modes and allowlists, Approval settings, Gates, verification commands, Role `tools`, `projects` and `paths`, `lessons.minOccurrences`, `router.answerFromDecisions`, and adapter or remote `module` paths.
+
+**Visibility.** `foreman status` and `foreman policy show --deviations` list every current difference from the Safety Defaults, with the layer and `changeId` that introduced it.
+
+**History and revert.** `foreman policy history` reads the Ledger. `foreman policy revert <changeId>` restores the source files from the snapshot before that change, and goes through the path above as a new Policy Change with `origin: revert`. A revert that relaxes something needs a Human Channel, so reverting a tightening is treated as seriously as any other Relaxation. If later changes touched the same keys, Foreman shows the resulting diff rather than merging silently.
 
 ### Inbox and Polling
 
@@ -624,15 +733,15 @@ A retro or lesson-extraction result may include Change Proposals. Each has `prop
 
 **Before queuing, code checks:**
 
-1. **Path containment.** The target must resolve inside `foreman/` or a Project, without following symlinks out. Paths in `memory/`, `.env` and Foreman's own installation directory are rejected, so a proposal can't edit the code that enforces the floor.
-2. **Structured targets (`config`, `roles`, `pipeline`, `policies`).** The diff is applied in memory, the result is schema-validated, and every safety-classified leaf is compared before and after. Any change that isn't strictly tightening is rejected outright and logged as `proposal.rejected_floor`. It is never queued, and neutral changes are queued. A new adapter or remote `module` path is the one exception: it queues as high-risk, always with human Approval (ADR-0014).
-3. **Free-text targets.** These always queue, with an advisory warning if the text mentions skipping tests, approvals or guards. The warning is informational, because the guarantee comes from runtime enforcement.
+1. **Path containment.** The target must resolve inside `foreman/` or a Project, without following symlinks out. Paths in `memory/`, `.env`, the user override and Foreman's own installation directory, including `policy/defaults.yaml`, are rejected.
+2. **Structured targets (`config`, `roles`, `pipeline`, `policies`).** The diff is applied in memory, the result is schema-validated, and Relaxations are classified as described under Policy. A proposal containing any Relaxation is rejected outright and logged as `proposal.rejected_relaxation`. It's never queued, while tightening and neutral changes are. The Policy Owner may still make that same change through `foreman policy` (ADR-0057). A new adapter or remote `module` path is the one exception: it queues as high-risk, always with human Approval (ADR-0014).
+3. **Free-text targets.** These always queue, with an advisory warning if the text mentions skipping tests, approvals or guards. The warning is informational, because the guarantee comes from the Check Engine evaluating Policy.
 
-**Approving** uses the same Human Channel rules, via the local channel. On apply, the base hash must still match; otherwise the proposal is marked stale and not applied. Targets in `foreman/` are applied directly. Targets in a Project go on a local branch `foreman/proposal-<id>` and then follow ordinary Outbound rules, so applying a proposal never pushes anything.
+**Approving** uses the same Human Channel rules, via the local channel. On apply, the base hash must still match; otherwise the proposal is marked stale and not applied. Targets in `foreman/` become a Policy Change with `origin: change-proposal`, so their history and revert work the same way. Targets in a Project go on a local branch `foreman/proposal-<id>` and then follow ordinary Outbound rules, so applying a proposal never pushes anything.
 
 ### Scanner
 
-The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow symlinks out of the repository, skips dependency and build directories, caps file size, and honours the Guard Policy deny list. Its environment-URL heuristic therefore reads `.env.example` but never `.env`. Evidence stores the file, line and signal name, never the matched value, so internal hostnames don't end up in a versioned `workspace.yaml`.
+The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow symlinks out of the repository, skips dependency and build directories, caps file size, and asks the Check Engine at `scan.read`. Under the Safety Defaults, its environment-URL heuristic therefore reads `.env.example` but never `.env`. Evidence stores the file, line and signal name, never the matched value, so internal hostnames don't end up in a versioned `workspace.yaml`.
 
 **Edge detection:**
 
@@ -650,13 +759,14 @@ The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow sy
 - **`--from <file>`.** Applies a schema-validated answers file with no prompts, and is the only write path, including for the skill (ADR-0017).
 - **`--yes`.** Accepts all recommendations and fails if a required answer has none. It confirms only high-confidence Edges.
 - **Determinism.** Output has stable ordering and no timestamps, so the same answers produce byte-identical files.
-- **`--update`.** Rescans and regenerates `workspace.yaml` and `graph.md`. Confirmed Edges are never changed. New detections are added as `detected`, for review. A confirmed Edge whose evidence has gone is reported, not removed. `foreman.yaml`, `context.md` and notes are only created when absent, and the command reports suggested additions rather than editing them.
+- **`--update`.** Rescans and regenerates `workspace.yaml` and `graph.md`. Confirmed Edges are never changed. New detections are added as `detected`, for review. A confirmed Edge whose evidence has gone is reported, not removed. `foreman.yaml`, `context.md` and notes are only created when absent, and the command reports suggested additions rather than editing them. The resulting change goes through the Policy path, so it's shown and confirmed.
+- **Baseline.** The first `foreman init` records the first accepted Policy Snapshot. Answers can set any Policy value, but a Relaxation against the built-in defaults needs a Human Channel, including with `--from` and `--yes`. An agent running the skill can therefore prepare a Relaxation but can't apply it. Non-interactive init with relaxing answers fails, naming the keys.
 - **Provider detection.** Runs `opencode models` when available, and checks for known environment variable names without reading their values. The Operator always confirms.
-- **Skill.** The repository ships `.agents/skills/foreman-init/SKILL.md`, which runs the same interview adaptively in any agent, writes an answers file, and calls `foreman init --from`. It tells the Operator that an agent session can't grant Approvals.
+- **Skill.** The repository ships `.agents/skills/foreman-init/SKILL.md`, which runs the same interview adaptively in any agent, writes an answers file, and calls `foreman init --from`. It also covers later behaviour changes through `foreman policy change`. It tells the Operator that an agent session can't grant Approvals or confirm a Relaxation.
 
 ### Build and distribution
 
-`bun run typecheck` runs `tsc --noEmit`. `bun run build` runs typecheck, then `bun build --target=bun` into `dist/` with built-in prompts copied alongside. Operators use `bun link` for the `foreman` command, so Bun is a runtime requirement. A single compiled binary is deferred until local-module loading has been verified under it. Runtime dependencies are limited to zod and a YAML parser (ADR-0007).
+`bun run typecheck` runs `tsc --noEmit`. `bun run build` runs typecheck, then `bun build --target=bun` into `dist/` with built-in prompts and `policy/defaults.yaml` copied alongside. Operators use `bun link` for the `foreman` command, so Bun is a runtime requirement. A single compiled binary is deferred until local-module loading has been verified under it. Runtime dependencies are limited to zod and a YAML parser (ADR-0007).
 
 ### Deliverables
 
@@ -668,6 +778,7 @@ The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow sy
 | `CONTRIBUTING.md` | Setup, tests, Adapter authoring, no personal data, no telemetry |
 | `docs/spec.md`, `docs/tickets.md` or `docs/tickets/`, `docs/decisions.md`, `GLOSSARY.md` | As named |
 | `.gitignore` | Covers real config paths, `memory/`, `.env`, `dist/` |
+| `policy/defaults.yaml` | The built-in layer: the Safety Defaults, default Pipeline, guard rules and limits, valid against the schema |
 | `config/foreman.example.yaml`, `config/workspace.example.yaml` | Valid against the schema, placeholders only |
 | `config/lessons.example.jsonl` | Valid against the Lesson schema |
 | `.env.example` | Placeholders only |
@@ -676,11 +787,15 @@ The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow sy
 
 The README safety model must state these limits:
 
+- Foreman is safe by default, not safe by guarantee. Safety Defaults can be relaxed by the Policy Owner, so a Workspace's protection is whatever its Policy currently says. `foreman policy show --deviations` reports it.
+- Each Safety Default is listed, with how to relax it and what relaxing it risks.
+- Relaxations are flagged in the diff at confirmation, recorded in the Ledger and revertible.
 - Without the Sandbox, the layers guard against mistakes, not a malicious Worker running as the same user.
-- Such a Worker could read credential files in its home directory, forge a local Approval through a PTY, or tamper with `memory/`.
+- Such a Worker could read credential files in its home directory, forge a local Approval or Policy confirmation through a PTY, or tamper with `memory/`, including the Ledger and snapshots.
 - Stored provider credentials stay reachable unless the Sandbox or a dedicated user is used.
-- Operators shouldn't approve from inside another agent's session.
+- Operators shouldn't approve or confirm from inside another agent's session.
 - `allowUnenforced: true` means relying on Foreman's remaining layers only.
+- The user override has the highest precedence, so Policy isn't an organization-wide control. Anyone who can confirm on that machine can change it.
 
 ### Engineering decisions made in this spec
 
@@ -700,14 +815,21 @@ The owner delegated these, and they refine the ADRs without contradicting them:
 12. **Non-outbound human Gates use the same Approval path**, so there's one forgery-resistance mechanism to get right.
 13. **GitHub uses REST with a configurable base URL**, for testability and GitHub Enterprise, rather than `gh`.
 14. **Distribution is `bun link` and `dist/`**, not a compiled binary, in v0.1.
-15. **Every config leaf is classified `safety` or `neutral`**, and an unclassified leaf fails a test, so the floor can't be bypassed by a new option.
+15. **Every Policy leaf is classified `safety` or `neutral` in code**, and an unclassified leaf fails a test and counts as a Relaxation at runtime, so a new option can't quietly bypass the check.
 16. **Worker limits count live Task Locks**, as a soft Workspace-wide limit.
 17. **A Worker timeout of 60 minutes** counts as a failed round.
 18. **Foreman commits a Worker's uncommitted changes** after it finishes, so the verified SHA covers all of its work.
+19. **Files alone never change Policy.** Foreman runs from the last accepted snapshot, so a hand edit needs `foreman policy apply`. A hand edit and a Worker's edit look the same on disk, and this is the only way to honour both "edit config" and "only the Policy Owner can relax" (ADR-0054).
+20. **All of `foreman/` except `graph.md` is tracked Policy**, including prompts, Context Files and `workspace.yaml`, since Workers act on them and `workspace.yaml` holds verification commands. The cost is that editing `context.md` needs a quick confirmation.
+21. **Tightening and neutral changes can use `--yes`; Relaxations can't.** This keeps scripted updates possible without weakening the Relaxation path.
+22. **Outbound Actions use the Policy current when attempted**, not a snapshot, so a tightening can stop a pending push at once (ADR-0056).
+23. **`approvals.acceptAgentMessages` is a real, working key**, as the owner made this a default rather than a lock. It covers Outbound Actions only.
+24. **GitHub Policy confirmation is through a PR on the Workspace's own repository**, with reviewers explicitly marked `policyOwner: true` (ADR-0059).
+25. **Project layers live in the Workspace.** A file in a Project's repository is untrusted and ignored.
 
 ## Acceptance Criteria
 
-Each criterion must be demonstrated by a test unless marked otherwise. The test plan below maps these to scenarios.
+Each criterion must be demonstrated by a test unless marked otherwise. The test plan below maps these to scenarios. Unless a criterion says otherwise, it applies under the shipped Safety Defaults, and AC-96 proves that each one can be relaxed.
 
 ### Adapters
 
@@ -750,7 +872,7 @@ Each criterion must be demonstrated by a test unless marked otherwise. The test 
 - **AC-28.** The reviewer is never the implementer's Worker. Three failed rounds escalate to the Inbox.
 - **AC-29.** Evidence on the merged SHA is required. A merge that breaks tests reopens the Task.
 
-### Approval and Safety Floor
+### Approval and Safety Defaults
 
 - **AC-30.** In Propose Mode, no Outbound Action happens without an Approval. A fake Remote and a local bare repository show no effect.
 - **AC-31.** A Worker's message, a review verdict and an Inbox answer each fail to satisfy an Approval.
@@ -760,18 +882,18 @@ Each criterion must be demonstrated by a test unless marked otherwise. The test 
 - **AC-35.** GitHub Approval is refused when the login isn't allowlisted, when the account is a `Bot`, when the commit doesn't match, or when a comment has been edited. An allowlisted human's correct review passes.
 - **AC-36.** Foreman refuses to start with GitHub Approval enabled when its token identity is on the allowlist.
 - **AC-37.** The Ledger holds the alias and numeric ID, and never the login.
-- **AC-38.** Autonomous Mode permits only `push` to `foreman/*` and `draft-pr`. A config allowlisting merge or deploy fails validation, and merge and deploy are refused at runtime even if validation is bypassed.
+- **AC-38.** Autonomous Mode permits only `push` to `foreman/*` and `draft-pr`, and merge and deploy require an Approval. Allowlisting merge or deploy in a file has no effect until confirmed as a Policy Change.
 - **AC-39.** A push to a default branch or a forced push is refused in every Mode.
-- **AC-40.** Config violating each floor rule fails validation with a clear message, including removing an outbound Gate or an evidence Gate.
-- **AC-41.** A floor rule still holds at runtime when config validation is bypassed by constructing the config directly.
-- **AC-42.** Every config schema leaf is classified `safety` or `neutral`.
+- **AC-40.** Each Safety Default holds under the shipped `policy/defaults.yaml`: Propose Mode, Approval before each of push, PR, merge and deploy, the `.env` deny, Evidence to close a Task, and agent messages not counting. Removing an outbound or evidence Gate is classified as a Relaxation.
+- **AC-41.** Worker text, prompts and Lessons can't change a check's result, and a check keeps using the Task's Policy Snapshot when files on disk differ.
+- **AC-42.** Every Policy schema leaf is classified `safety` or `neutral`, and an unclassified path counts as a Relaxation at runtime.
 - **AC-43.** Foreman's own push doesn't run a hook planted by a Worker, and a changed git config blocks Outbound Actions.
 
 ### Guard Policy
 
 - **AC-44.** A worktree contains no untracked `.env`. A `copyFiles` entry matching the deny list is refused, and a tracked denied file blocks the Task with an Inbox item.
-- **AC-45.** A `.env.example` remains available and `.env` can't be un-denied by config.
-- **AC-46.** Config passing any refused credential name through `env.passthrough` fails validation.
+- **AC-45.** A `.env.example` remains available, and `.env` stays denied until a confirmed Relaxation changes it.
+- **AC-46.** A refused credential name in `env.passthrough` isn't passed to Workers, and a file edit adding one has no effect until confirmed as a Relaxation.
 - **AC-47.** A Worker's `git push` is blocked by the injected hook, with no change to the repository's config.
 - **AC-48.** Verification commands run in the same scrubbed environment as Workers.
 - **AC-49.** With bubblewrap available, a sandboxed Worker can't read `.env`, `memory/` or a canary in `HOME`, and can write and commit in its worktree. When bubblewrap isn't available, `sandbox: bwrap` fails validation.
@@ -793,7 +915,7 @@ Each criterion must be demonstrated by a test unless marked otherwise. The test 
 - **AC-59.** Secret patterns and home paths don't reach the store.
 - **AC-60.** A Lesson that says "skip the tests" and is injected has no effect on Gates: a failing Task still can't close.
 - **AC-61.** A Change Proposal removing a deny rule, enabling `allowUnenforced`, adding passthrough, widening a Role, weakening a Mode, removing a Gate or lowering `minOccurrences` is rejected, never queued, and logged.
-- **AC-62.** A proposal targeting `memory/`, `.env`, a symlink out of bounds or Foreman's installation is rejected.
+- **AC-62.** A proposal targeting `memory/`, `.env`, the user override, a symlink out of bounds or Foreman's installation, including `policy/defaults.yaml`, is rejected.
 - **AC-63.** `foreman proposals list`, `show`, `approve` and `reject` all work. An agent can't approve a proposal, for the same reasons as AC-32.
 - **AC-64.** A proposal with a stale base hash isn't applied. An approved proposal targeting a Project lands on a local branch and pushes nothing.
 - **AC-65.** Each Lesson and proposal event is in the Ledger.
@@ -827,6 +949,27 @@ Each criterion must be demonstrated by a test unless marked otherwise. The test 
 - **AC-84.** `.env.example` and the example configs contain only placeholders, enforced by a test. All deliverables exist, and `LICENSE` is MIT with the required copyright.
 - **AC-85.** The shipped CLI has no flag, environment variable or hidden option that bypasses the Human Channel, enforced by a test against its composition root and by the real-binary tests in AC-32.
 
+### Policy
+
+- **AC-86.** Effective Policy follows built-in < Workspace < Project < user override, named rules merge by ID, and `foreman policy show --explain` names the layer that set a key.
+- **AC-87.** Rules live only in the defaults file: a static test finds no deny globs, credential names, secret patterns or default Mode values in source code. A missing or invalid `policy/defaults.yaml` stops Foreman with a clear error.
+- **AC-88 (the owner's required test).** The Policy Owner relaxes a Safety Default through a confirmed diff. It takes effect for a new Task without a restart. The Ledger holds who (channel and alias), when, why, before and after hashes and the Relaxation key. `foreman policy revert` then restores the previous behaviour for the next new Task, as a new Ledger event.
+- **AC-89 (the owner's required test).** An in-flight Task keeps its old Policy Snapshot after a Policy Change, including across `foreman resume`, while a new Task in the same Run uses the new one. Each Task's `task.locked` event has the Policy hash it used.
+- **AC-90 (the owner's required test).** Agent attempts to relax are rejected. `foreman policy apply`, `change` and `revert` refuse under the Worker marker, including an ancestor-only marker. A Worker's direct edit of a Policy file has no effect and raises a drift notice. A relaxing Change Proposal is rejected. A comment asking for it does nothing. The Policy Owner can still make the same change afterwards.
+- **AC-91.** A hand edit has no effect until `foreman policy apply`. A Relaxation needs a TTY and the right nonce, and refuses `--yes`, no TTY and a wrong nonce. A nonce covers one exact diff, so a file changed after display invalidates it. Tightening and neutral changes succeed with `--yes`.
+- **AC-92.** `foreman policy change` uses the fake Adapter to produce a schema-valid draft and shows it, and nothing applies before confirmation. Declining leaves Policy unchanged. An invalid draft is refused as a whole. A draft containing a Relaxation is flagged and needs the Relaxation path, even when the text didn't ask for one. With no Adapter configured, the command fails clearly.
+- **AC-93.** `foreman policy history` lists changes. A revert is a new event and never edits earlier lines. A revert that relaxes something needs a Human Channel.
+- **AC-94.** Classification is correct for each kind of leaf in both directions, for a change introduced by a higher layer, and for moving a value between layers with no change to the result.
+- **AC-95.** A Relaxation is marked prominently in the displayed diff, and `foreman status` and `foreman policy show --deviations` list every difference from the Safety Defaults, with its layer and `changeId`.
+- **AC-96.** Each Safety Default can be relaxed by the Policy Owner, with an observable effect: an Outbound Action without an Approval for each of push, PR, merge and deploy, a Worker reading a `.env` canary, a Task closing without Evidence and recorded as such, and an agent message satisfying an Approval.
+- **AC-97.** The mechanism can't be configured away. The schema has no key for it, and an attempt to add one is an unknown-key error. With `acceptAgentMessages: true`, a Worker's message still can't confirm a Policy Change or satisfy `foreman policy apply`.
+- **AC-98.** `foreman init` records the first snapshot. Relaxing answers through `--from` or `--yes` fail without a Human Channel, naming the keys. A TTY confirmation applies them. `--update` changes go through the Policy path.
+- **AC-99.** `--from-pr` applies only with an `APPROVED` review at the checkout's clean `HEAD` from a `policyOwner: true` account of type `User`. An allowlisted reviewer without the mark, a `Bot`, a different commit and a dirty checkout are each refused.
+- **AC-100.** A tampered snapshot whose content doesn't match the Ledger hash stops Foreman. A Workspace with no accepted snapshot runs on built-in defaults alone and ignores its files. Changed built-in defaults, as after an upgrade, are shown as a change to confirm.
+- **AC-101.** A policy file in a Project's repository is ignored, even if it uses the correct format.
+- **AC-102.** A Policy Change's Ledger event holds only the layer name for the user override, and the sentinel check in AC-55 still passes.
+- **AC-103.** A tightening accepted during a Run stops a not-yet-attempted Outbound Action, and the action records the Policy hash it used.
+
 ## Testing Decisions
 
 ### What makes a good test
@@ -842,13 +985,14 @@ To keep seams few, tests use these, in order of preference:
 3. **The Adapter contract seam.** One shared suite against any non-stub Adapter.
 4. **The Remote contract seam.** One shared suite, run against the fake Remote and against the GitHub Remote with a local fake HTTP server.
 
-Pure logic with many edge cases gets direct tests through its module interface: graph ordering, Ledger reduction, the floor's relaxation check, fingerprinting, Scanner detection. This repository has no prior tests, so these set the convention.
+Pure logic with many edge cases gets direct tests through its module interface: graph ordering, Ledger reduction, Relaxation classification, layer merging, fingerprinting, Scanner detection. This repository has no prior tests, so these set the convention.
 
 ### Fixtures
 
 - **Fake Adapter.** Plays a declarative scenario per Step and Task: edit files, commit or leave changes uncommitted, ask a question, fail, emit bad output, hang, misreport its diff, or attempt to read `.env`. It starts real child processes with the exact environment given, so environment scrubbing is really tested. It can declare `enforcesPolicy` either way.
 - **Fake `opencode` executable.** Replays captured JSON output.
 - **Fake Remote and fake GitHub HTTP server.** Scriptable identities, PRs, reviews, comments and events, with call recording.
+- **Policy fixtures.** A temp user-override directory, so tests never read the real home directory, and an alternative `policy/defaults.yaml` to simulate an upgrade. Test Policy goes through the real Policy path, and tests that need a starting state confirm it through the test Human Channel.
 - **Temp git repositories.** Each test materializes real repositories and a local bare repository to act as the push target.
 - **Fixture Workspace.** A fake four-service Workspace under `tests/fixtures`, with manifests from multiple stacks. Its verify commands are small shell scripts, so no language toolchains are needed:
   - `shared-types`: TypeScript library. Upstream through `shares-lib`.
@@ -872,7 +1016,9 @@ Pure logic with many edge cases gets direct tests through its module interface: 
 | Approval (app) | Non-human messages, binding, reuse, expiry, Approval sets | 31, 34 |
 | GitHub Approval | Login, Bot, wrong commit, edited comment, identity collision, alias only in Ledger | 35–37 |
 | Modes | Allowlist limit, default-branch and force-push refusal | 30, 38, 39 |
-| Floor | Each rule at validation, each rule at runtime, leaf classification | 40–42 |
+| Safety Defaults | Each default under shipped Policy, snapshot used over files on disk, leaf classification | 40–42 |
+| Policy lifecycle | Layers, relax and revert end to end, in-flight snapshot, hand edit and drift, natural-language draft, classification, deviations report, `init` baseline, tamper and upgrade | 86–89, 91–95, 98, 100–103 |
+| Policy authority (process) | Worker-marker refusals, Worker file edit, relaxing proposal, each default relaxed by the Policy Owner, mechanism not configurable, GitHub `--from-pr` | 90, 96, 97, 99 |
 | Guard | Env canary, deny and copy rules, tracked secret, passthrough refusal, push hook, planted hook, config change | 3, 5, 43–48 |
 | Sandbox | Real bubblewrap, skipped and reported if missing | 49 |
 | Crash (process) | `SIGKILL` at each point around each action kind, then resume and count effects on the bare repository and fake Remote | 50–54 |
@@ -904,6 +1050,8 @@ Pure logic with many edge cases gets direct tests through its module interface: 
 - **Automatic rollback** across Projects.
 - **Windows** and network filesystems for `memory/`.
 - **Mandatory sandboxing**, and sandboxes other than bubblewrap.
+- **Organization-enforced Policy:** no layer above the user override, signed Policy, or any floor an administrator can impose.
+- **A way to apply in-flight Policy to running Tasks:** the Policy Owner abandons and restarts instead.
 - **Plugin marketplace** or auto-install.
 - **Compiled single binary.**
 - **Publishing:** no remote, package release or hosted repository during this work.
@@ -912,5 +1060,6 @@ Pure logic with many edge cases gets direct tests through its module interface: 
 
 - **Unverified at the time of writing:** OpenCode's actual deny-rule behaviour, its `--standalone` environment handling, its read-only mode, its JSON format, and whether a local fake provider can drive it. All are covered by the "Required first proof". The Adapter's safe starting state means a negative result reduces convenience, not safety.
 - **Threat model honesty:** Foreman's layers are strong against agent mistakes and modest against a deliberately malicious Worker under the same user. Tests prove that each layer works. They don't prove that a same-user adversary can't get around it, and the README must not imply otherwise.
-- **Implementation order:** the safety modules (Ledger, Locks, Safety Floor, Outbound Executor) have the highest cost of error, so tickets should build them with their tests before the Pipeline Engine relies on them. `docs/tickets` will set the exact order.
+- **Corporate use:** with nothing hard-locked, a company can't impose a minimum through Foreman itself. It would need to control who can confirm on the machine, such as by running Foreman under a dedicated user. The README must say this rather than implying Policy is a compliance control.
+- **Implementation order for tickets:** the mechanism modules have the highest cost of error, so tickets should build them with their tests before anything relies on them. Build the Ledger first, then Policy and the Check Engine, then Locks, Human Channels and the Outbound Executor, then the Pipeline Engine. No ticket may add a hardcoded behaviour rule: each one reads its rules from Policy, and each checkpoint it adds comes with its Safety Default in `policy/defaults.yaml` and its leaf classification. `docs/tickets` will set the exact order.
 - **Development process:** implementation happens locally in small verifiable commits, with no remote (ADR-0010).

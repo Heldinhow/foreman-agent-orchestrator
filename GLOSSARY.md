@@ -12,6 +12,10 @@ _Avoid_: maintainer (for design authority)
 The authenticated human who runs Foreman for a Workspace and can grant Approvals.
 _Avoid_: user, owner (for this role), admin
 
+**Policy Owner**:
+The authenticated human allowed to change a Workspace's Policy, including Relaxations.
+_Avoid_: owner (alone), admin
+
 **Router**:
 The part of Foreman that turns planned work into ordered, assigned Tasks and decides what runs next.
 _Avoid_: orchestrator, lead, manager
@@ -131,15 +135,35 @@ The default Mode, where every Outbound Action waits for an Approval.
 _Avoid_: dry run, shadow mode
 
 **Autonomous Mode**:
-The opt-in Mode, where allowlisted low-risk Outbound Actions proceed without an Approval.
+The opt-in Mode, where allowlisted Outbound Actions proceed without an Approval.
 _Avoid_: auto mode, YOLO mode
 
-**Safety Floor**:
-The rules that no configuration, prompt, Lesson or Change Proposal can relax.
-_Avoid_: guardrails, defaults
+**Policy**:
+The editable rules that decide how Foreman behaves, including Gates, Modes, Steps, prompts and what Workers are denied.
+_Avoid_: settings, locked rules, config (for behaviour rules)
+
+**Policy Layer**:
+One source of Policy, in rising precedence: built-in, Workspace, Project, user override.
+_Avoid_: scope, profile
+
+**Safety Default**:
+A safe Policy value that ships with Foreman and stays in force until the Policy Owner relaxes it.
+_Avoid_: guardrail, floor, hard rule
+
+**Relaxation**:
+A change to Policy that makes it less safe than it was.
+_Avoid_: override, exception, downgrade
+
+**Policy Change**:
+A human-confirmed, recorded and reversible change to Policy.
+_Avoid_: Change Proposal, config edit, hot fix
+
+**Policy Snapshot**:
+The exact Policy accepted at one point in time, which a Task keeps for its whole life.
+_Avoid_: version, cache
 
 **Guard Policy**:
-What a Worker is denied, including secret files and credentials.
+The part of Policy that says what a Worker is denied, including secret files and credentials.
 _Avoid_: sandbox, permissions
 
 **Sandbox**:
@@ -183,5 +207,5 @@ How far Foreman trusts a Lesson, based on its occurrences and human review.
 _Avoid_: score (alone), certainty
 
 **Change Proposal**:
-A suggested change to instructions, prompts, config, the Pipeline, policies or code, derived from Lessons and awaiting an Approval.
-_Avoid_: proposal (alone), propose mode, suggestion
+A suggested change to instructions, prompts, config, the Pipeline, Policy or code, derived from Lessons and awaiting an Approval, which can never be a Relaxation.
+_Avoid_: proposal (alone), propose mode, suggestion, Policy Change

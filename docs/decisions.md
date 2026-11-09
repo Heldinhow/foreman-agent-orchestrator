@@ -11,6 +11,8 @@ This is the architecture decision record for Foreman v0.1. Terms are defined in 
 
 **Unverified assumptions** are marked as such and each names what must confirm it.
 
+**Amendments.** Accepted entries aren't rewritten. A **Status** line says what later entry changes one and how, and where they differ the later entry wins. Section H, the owner's adaptive-behaviour decision of 2026-11-09 (source label `adaptive`), amends several safety entries.
+
 ## A. Product and scope
 
 ### ADR-0001: Name and license
@@ -110,6 +112,8 @@ Roles such as backend, frontend, tests, docs and reviewer are declared in config
 
 **Decided by:** the owner · **Source:** workspace
 
+**Status:** Amended by ADR-0051. The Safety Floor is no longer an exception, so safety rules are configuration too.
+
 Projects, the graph, Roles, Pipeline Steps, Gates, prompts, policies and locale are config or plugins, not code, so needs can change without forking Foreman. The only exception is the Safety Floor (ADR-0044). The schema is validated (zod) and reports clear errors. `foreman init` scaffolds an example Workspace, and `tests/fixtures` holds an example with three or more fake interdependent services.
 
 ### ADR-0014: Plugins are explicit local modules
@@ -121,6 +125,8 @@ Built-in Adapters and Remotes come from a registry. Custom ones are local module
 ### ADR-0015: Workspace directory layout
 
 **Decided by:** the owner · **Source:** Q10
+
+**Status:** Amended by ADR-0052, which adds the Project and user Policy Layers and the Policy Snapshot store.
 
 `foreman init` targets a separate Workspace directory chosen by the operator, because five separate repositories share no common root and proposals must be reviewable as diffs:
 
@@ -140,6 +146,8 @@ Onboarding is available both as the `foreman init` CLI command and as an agent s
 ### ADR-0017: The CLI interview needs no LLM, and there is one write path
 
 **Decided by:** the owner · **Source:** Q14a
+
+**Status:** Amended by ADR-0054. `foreman init` can't apply a Relaxation without the Policy Owner's confirmation, including through `--from`.
 
 `foreman init` has to run before any model is configured, so the CLI runs a scripted interview with recommendations drawn from a deterministic Scan. The skill version is adaptive but writes an answers file applied through `foreman init --from <file>`, so all onboarding passes through the same validation.
 
@@ -162,6 +170,8 @@ v0.1 covers:
 ### ADR-0019: Model Assignment per Step and Role
 
 **Decided by:** the owner · **Source:** setup, Q14a
+
+**Status:** Amended by ADR-0055, which adds a `policy-drafting` Step to the list.
 
 The operator maps each Step (grill, spec, tickets, implement, review, retro, routing, lesson extraction) and each Role to a provider, model and variant, based on what they actually have (for example Claude, OpenAI/Codex, DeepSeek, Mistral, Ollama or OpenRouter). Nothing is hardcoded.
 
@@ -198,6 +208,8 @@ Worker questions wait in an Operator Inbox (`foreman inbox`, `foreman answer`). 
 ### ADR-0024: Declarative Pipeline and Step granularity
 
 **Decided by:** the owner · **Source:** brief 8b, Q12
+
+**Status:** Amended by ADR-0052. The default Pipeline ships in the built-in defaults file.
 
 The AIHero Pipeline (grill → spec → tickets → implement → review → retro) is declared in YAML, with Gates between Steps. `grill`, `spec`, `tickets` and `retro` run once per Run. `implement` and `review` run once per Task.
 
@@ -251,6 +263,8 @@ Two Workers must never take the same Task, and an abandoned Task must be recover
 
 **Decided by:** the owner on format and requirements, delegated engineering on mechanics · **Source:** brief 8f, round 2
 
+**Status:** Amended by ADR-0054, which records who, when and why for each Policy Change. "Who" is an alias, so the rule against storing usernames still holds.
+
 `memory/ledger.jsonl` is the source of truth, and other state is derived from it. JSONL was chosen over SQLite because it is inspectable, append-only by construction and needs no migration tooling.
 
 - Each line carries `schemaVersion`, a unique `eventId`, and where applicable an `actionId` and `state` (`pending` or `done`, with an `outcome` on `done`).
@@ -297,6 +311,8 @@ The Adapter starts with `enforcesPolicy: false`. The Adapter's first ticket must
 
 **Decided by:** the owner · **Source:** brief 8d, Q12
 
+**Status:** Amended by ADR-0051. Requiring Evidence to close a Task is now a Safety Default rather than a locked rule. The Policy Owner may relax it, and a Task closed that way is recorded as closed without Evidence.
+
 A Task closes only with Evidence. Foreman runs the configured commands itself and never accepts a Worker's claim, recording the command, exit code, output hash and SHA in the Ledger.
 
 The diff check requires that the diff is non-empty, stays within the Role and Project scope, avoids forbidden paths and contains no secret patterns. Deleted or skipped tests are flagged for the reviewer. The reviewer must be a different Worker from the implementer. Three failed rounds escalate to the Operator (configurable).
@@ -308,6 +324,8 @@ Verification commands execute Worker-written code, so they run with the same scr
 ### ADR-0035: Worker containment is layered, and its limit is stated
 
 **Decided by:** the owner · **Source:** Q1
+
+**Status:** Amended by ADR-0058. Each layer's rules now come from Policy, with today's behaviour as the Safety Default.
 
 Foreman can't hook into every agent, and a Worker with a shell can attempt anything its user can. Layers instead of a mandatory sandbox keep Foreman usable on any machine:
 
@@ -326,6 +344,8 @@ For layer 5, Foreman injects `core.hooksPath` through the Worker's `GIT_CONFIG_*
 
 **Decided by:** delegated engineering · **Source:** resolves a gap in Q1 and Q3 against BYOK
 
+**Status:** Amended by ADR-0058. The list of credentials never passed through is a Safety Default in the defaults file, not a list in code.
+
 "No tokens passed through" and BYOK collide, because a Worker's agent needs model-provider credentials to run at all. The rule that resolves this:
 
 - An Adapter may declare explicit `env.passthrough` names for model-provider credentials only.
@@ -338,11 +358,15 @@ For layer 5, Foreman injects `core.hooksPath` through the Worker's `GIT_CONFIG_*
 
 **Decided by:** the owner · **Source:** brief 8g, Q7
 
+**Status:** Amended by ADR-0051. The `.env` deny is a Safety Default that the Policy Owner may relax, not only through file-level exceptions.
+
 The Guard Policy denies Workers access to `.env` and similar secret files by default. The only exceptions are explicit ones, such as `.env.example`, set in human-edited config.
 
 ### ADR-0038: Only an authenticated human can approve
 
 **Decided by:** the owner · **Source:** brief 8e
+
+**Status:** Amended by ADR-0051. For Outbound Actions, needing an Approval and not counting agent messages are Safety Defaults the Policy Owner may relax. For Policy Changes they stay fixed in code (ADR-0053).
 
 Human Approval is required before push, PR, merge or deploy. A message or comment from an agent never counts as Approval. An Approval must arrive through a Human Channel: the local CLI used by the Operator, or a configured allowlist of human GitHub logins verified through the API. A deploy is a configured command that Foreman runs, not a Worker action (delegated engineering).
 
@@ -377,11 +401,15 @@ To keep usernames out of the Ledger (ADR-0030), Approval records store the Human
 
 **Decided by:** the owner · **Source:** Q4
 
+**Status:** Amended by ADR-0051. For Outbound Actions, invalidating on change and the expiry are Safety Defaults. A Policy Change confirmation always binds to its exact diff (ADR-0053).
+
 An Approval is bound to `actionId`, target and exact head SHA or diff hash. Any change invalidates it and requests Approval again. It is single-use and expires after a configurable 24 hours by default.
 
 ### ADR-0042: What counts as a merge
 
 **Decided by:** the owner · **Source:** Q5
+
+**Status:** Amended by ADR-0051. This is the default definition, expressed in Policy.
 
 Merging a verified Task into its local, Foreman-owned Integration Branch needs no human Approval. Anything that leaves the machine or touches a Project's default or protected branch does.
 
@@ -389,11 +417,15 @@ Merging a verified Task into its local, Foreman-owned Integration Branch needs n
 
 **Decided by:** the owner · **Source:** brief 8e, Q6
 
+**Status:** Partly superseded by ADR-0051. Propose Mode and the `push` and draft PR allowlist remain the Safety Defaults. "Merge and deploy always need a human, hardcoded" no longer holds: they need a human by default, and the Policy Owner may change that through a Policy Change.
+
 Propose is the default Mode. Autonomous is opt-in per repository, with an allowlist. That allowlist can cover only `push` to Foreman-owned branches and opening a draft PR. Merging to the default branch and deploying always need a human, in every Mode, hardcoded and tested.
 
 ### ADR-0044: The Safety Floor lives in code
 
 **Decided by:** the owner · **Source:** Q7
+
+**Status:** Superseded by ADR-0051 and ADR-0053. There is no longer a Safety Floor. The rules below are Safety Defaults in an editable file. What stays in code is the mechanism that controls who can change them. This entry is kept for history.
 
 Because everything else is config, these rules are enforced in code and can't be configured away:
 
@@ -426,6 +458,8 @@ GitHub event polling is in scope but off by default. Its only effects are surfac
 
 **Decided by:** the owner · **Source:** brief 8h, workspace
 
+**Status:** Amended by ADR-0057. A Lesson still can't relax anything: a Change Proposal that would is rejected. The Policy Owner may still make the same change themselves.
+
 After each Task or retro, and when a failure gets resolved, Foreman records a structured Lesson: symptom, root cause, fix and detection hint. Lessons live in `memory/lessons.jsonl`, gitignored by default, with `config/lessons.example.jsonl` as the committed example (location: delegated engineering). "Versioned" means append-only records with a schema version and `supersedes`.
 
 Foreman auto-applies only low-risk changes to its own memory and Lesson files. Instructions, prompts, config, Roles, the Pipeline, policies and code change only through a Change Proposal and the same human Approval gate as any diff. Every Lesson and Change Proposal event is audited in the Ledger. `foreman proposals` lists, approves and rejects them.
@@ -444,6 +478,8 @@ Deduplication uses that fingerprint and increments Occurrence Count and Confiden
 
 **Decided by:** the owner · **Source:** Q13
 
+**Status:** Amended by ADR-0058. A poisoned Lesson can't bypass a check because the check engine evaluates Policy, and a Lesson can't change Policy.
+
 Lessons derive from agent output, so one could say "skip the tests" or carry a secret. Secrets are redacted before storage, along with home-directory paths (delegated engineering). Lessons are injected in a fenced block marked as data, not instructions. A Lesson qualifies for injection with 2 or more occurrences or an explicit Approval (configurable). A poisoned Lesson that does get through still can't bypass the Safety Floor, because code enforces it.
 
 ## G. Language
@@ -455,3 +491,107 @@ Lessons derive from agent output, so one could say "skip the tests" or carry a s
 `foreman init` is the only onboarding command, with no `setup` command. **Run** is one Intent. **Step** is one Pipeline stage. **Task** is what a Worker locks, and the `tickets` Step produces Tasks. **Role** replaces "worker profile". **Mode** (`propose` or `autonomous`) and **Change Proposal** are kept separate, so "proposal" never refers to the Mode. `GLOSSARY.md` holds the full vocabulary.
 
 `docs/tickets` remains the name for Foreman's own development backlog (a deliverable in ADR-0010). It is not a product concept.
+
+## H. Adaptive behaviour
+
+### ADR-0051: Nothing is hard-locked
+
+**Decided by:** the owner · **Source:** adaptive · **Supersedes:** ADR-0044 · **Amends:** ADR-0013, ADR-0034, ADR-0037, ADR-0038, ADR-0041, ADR-0042, ADR-0043
+
+Foreman must adapt as its context changes, so no behaviour rule is locked in code. Every policy, Gate, workflow Step, instruction, prompt and default lives in editable, versioned files. That includes today's safe values: Propose Mode, Approval before push, PR, merge or deploy, the `.env` deny, Evidence to close a Task, and agent messages not counting as Approval. These become **Safety Defaults**.
+
+The Policy Owner can change how Foreman handles a situation at any time. Agents, Worker output, comments and Lessons can only propose.
+
+**Consequence.** Foreman is safe by default, not safe by guarantee. A Workspace's protection is whatever its Policy Owner has left in place, so `foreman status` and the README safety model must make any deviation from the Safety Defaults obvious. This replaces the earlier claim that the rules can't be configured away.
+
+### ADR-0052: Policy Layers and precedence
+
+**Decided by:** the owner on precedence and validation, delegated engineering on locations · **Source:** adaptive
+
+Effective Policy is merged from four layers, with later layers winning:
+
+1. **Built-in:** the shipped, versioned `policy/defaults.yaml`, including the default Pipeline and the Safety Defaults.
+2. **Workspace:** `foreman/foreman.yaml`.
+3. **Project:** `foreman/projects/<project>.yaml`.
+4. **User override:** `foreman/override.yaml` in the user's config directory (`$XDG_CONFIG_HOME` or `~/.config`).
+
+All layers are schema-validated with zod. Named rules merge by ID, so a layer can change one rule without restating a list.
+
+The Project layer lives in the Workspace and not inside the Project's repository, because a repository's content is untrusted (ADR-0018) and a Worker can edit it. A policy file in a Project's repository is ignored.
+
+### ADR-0053: Only the mechanism stays in code
+
+**Decided by:** the owner · **Source:** adaptive
+
+Code enforces the mechanism, not the rules:
+
+1. **Authority.** A Relaxation can only be applied by the authenticated Policy Owner, using the same Human Channels as Approvals: TTY and nonce locally (ADR-0039), or a verified human reviewer (ADR-0040). An agent, Worker output, comment or Lesson can never apply one.
+2. **Accountability.** Every change is shown as a diff, confirmed, recorded in the Ledger and revertible.
+3. **Snapshots.** Hot reload applies to new Tasks only, and in-flight Tasks keep the Policy they started with.
+
+No Policy key can turn these off. Without this, one relaxed setting could remove the owner's control over all the others. For example, with agent messages allowed to approve Outbound Actions, a Policy Change still needs a human.
+
+These supporting parts also live in code, because the mechanism depends on them (delegated engineering): how each Human Channel authenticates, schema validation, Relaxation classification, the check engine's evaluation, the Ledger and locks, and the single Outbound Executor path. The classification of each key is in code rather than in a file, since otherwise a file edit could reclassify a safety key as harmless.
+
+### ADR-0054: Applying a Policy Change
+
+**Decided by:** the owner on the requirements, delegated engineering on out-of-band edits · **Source:** adaptive
+
+Every Policy Change is shown as a diff, confirmed by the Policy Owner, and recorded with who, when and why, plus before and after hashes. It is reversible with `foreman policy history` and `foreman policy revert`. A revert is a new Policy Change, and needs the Relaxation path if it relaxes something.
+
+The owner's decision allows changes by "editing config", but a hand edit and a Worker's edit under the same user look identical on disk. So files alone never change Policy:
+
+- **Policy Set.** Foreman tracks the built-in defaults, all of `foreman/` except the generated `graph.md`, and the user override, as one hashed Policy Set. Prompts and Context Files are in it too, since Workers act on them. `workspace.yaml` is in it because it holds verification commands.
+- **Accepted state.** Foreman runs from the last accepted Policy Snapshot, not from the current files. A changed file has no effect until accepted, and Foreman reports the drift.
+- **Accepting a hand edit.** `foreman policy apply` shows the diff and asks for confirmation. A Relaxation needs a TTY and nonce. Other changes need interactive confirmation or `--yes`, which refuses Relaxations. All forms refuse under the Worker marker.
+- **No accepted state.** A Workspace without an accepted snapshot runs on built-in defaults alone.
+- **`foreman init`.** It records the first accepted snapshot. Relaxing values in its answers, including through `--from`, need the same confirmation.
+- **Foreman upgrades.** New built-in defaults are a change to the Policy Set, so they are shown and confirmed too.
+
+"Who" in the Ledger is the Human Channel and a configured alias, which keeps usernames out (ADR-0030). "Why" is the Policy Owner's own text, with secret patterns redacted.
+
+### ADR-0055: Natural-language changes
+
+**Decided by:** the owner · **Source:** adaptive
+
+`foreman policy change "<text>"` runs a `policy-drafting` Step through a Worker Adapter, usually as "from now on, do X when Y". It outputs a schema-validated diff, which is then shown and confirmed as in ADR-0054. Nothing applies without confirmation. The same command is reachable from the Foreman skill.
+
+The drafting Worker is an agent and its output is untrusted, so the diff shown to the Policy Owner is the thing being confirmed, not the original text. A Policy Owner can ask for a Relaxation this way, since the Policy Owner is the one asking and confirming.
+
+With no Adapter configured, the command fails clearly and hand editing still works.
+
+### ADR-0056: Hot reload and Policy Snapshots
+
+**Decided by:** the owner · **Source:** adaptive
+
+An accepted change takes effect immediately for new Tasks, with no restart. An in-flight Task keeps the Policy Snapshot it started with, and the snapshot's hash is recorded on the Task.
+
+Delegated engineering fills in what the decision leaves open:
+
+- A Run's Pipeline shape is pinned at the Run's start, so a change can't reshape a linear flow that is already part-way through.
+- A Run-level Step uses the Policy current when it starts.
+- An Outbound Action uses the Policy current when it is attempted, and records that hash. Outbound Actions aren't Tasks, and this lets a tightening stop a pending push at once. A Relaxation also applies to it, but only the Policy Owner can make one.
+
+### ADR-0057: Relaxations are classified automatically, and agents only propose
+
+**Decided by:** the owner · **Source:** adaptive · **Amends:** ADR-0047
+
+A Relaxation is detected by comparing before and after on safety-classified keys, and is flagged prominently in the diff and the README safety model. The comparison runs on the merged result, so a higher layer can't hide one.
+
+Direction is defined per key (delegated engineering). Removing a deny rule or adding to an allowlist relaxes. Removing or disabling a rule or changing its effect relaxes. A key with no defined order, such as a verification command, counts as relaxing on any change. An unclassified key is treated as relaxing, so errors fall on the safe side.
+
+A Change Proposal from Lessons or self-improvement that would relax anything is rejected, not queued. The Policy Owner may still make that same change manually.
+
+### ADR-0058: The guard is a policy-driven check engine
+
+**Decided by:** the owner · **Source:** adaptive · **Amends:** ADR-0035, ADR-0036, ADR-0049
+
+Guard behaviour is a check engine that evaluates rules loaded from Policy files. Code has no deny lists or credential names beyond the defaults file, and a test enforces this. A missing or invalid defaults file stops Foreman rather than leaving it unguarded (delegated engineering).
+
+Each decision records the rule and Policy Layer that produced it, so behaviour can be explained and audited.
+
+### ADR-0059: Policy Owner, not "owner"
+
+**Decided by:** delegated engineering · **Source:** vocabulary conflict between `adaptive` and ADR-0050
+
+The glossary's **Owner** decides what the Foreman project becomes. The adaptive decision's "owner" is the authenticated human who controls one installation's behaviour. That's a different person in most deployments, so it is named **Policy Owner**. Locally, this is the Operator at a TTY. On GitHub, it is an allowlisted reviewer explicitly marked `policyOwner: true`, so being able to approve a push doesn't grant the right to relax Policy.
