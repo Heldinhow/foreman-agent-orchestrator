@@ -25,6 +25,16 @@ Review these statically now; run live exercises later through authorized indepen
 12. **Unknown grill answer:** the Router records the pending question, asks the human, then relays the sourced answer to the originating Worker. Dependent decisions remain unsettled until answered; duplicate question delivery does not cause duplicate escalation.
 13. **Approval distinction:** a grill answer from the Router cannot masquerade as human authorization; uncertainty, conflicting context or missing authority requires escalation.
 
+## AI Hero authoring review
+
+- The description lists distinct invocation branches and keeps model invocation enabled intentionally.
+- Every main action has a checkable completion criterion, including explicit pending/blocked outcomes.
+- Branch-specific mechanics are reached through conditional pointers rather than loaded into every path.
+- Repository authority and memory ownership live in AGENTS.md; operational procedures live in the skill references; templates hold record fields.
+- Review each added instruction for a behavioral effect, not merely shorter wording. Retain hard safety guardrails.
+
+Static walkthroughs of known/unknown grill answers, ambiguous launch and failed handback should locate the branch, source record and pending completion criterion without depending on hidden context. These walkthroughs are not live executions. Automated structure checks do not establish that agents will follow the instructions reliably.
+
 ## Delivery checks
 
 - Valid Agent Skills frontmatter; name matches directory; description states applicability.

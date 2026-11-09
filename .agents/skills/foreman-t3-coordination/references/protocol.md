@@ -1,90 +1,81 @@
-# Assignment and handback protocol
+# Coordination records
 
-Resolve paths against the workspace/repository specified in the brief, not an assumed Router working directory. Never put secrets or confidential context into public records.
+Use these fields for briefs, durable assignments, questions and returns. Resolve project paths against the workspace named in the brief.
 
 ## Worker brief
 
 ```text
 Task / issue:
-Objective and agreed scope:
+Objective and scope:
 Delegating Router thread link:
 Workspace / project:
-Required context files and relevant decisions:
-Specification and acceptance criteria:
-Dependencies and required base commit/ref:
+Required context and relevant decisions:
+Specification / acceptance criteria:
+Dependencies / required base commit or ref:
 Allowed changes / forbidden areas:
-Provider/model and permission constraints:
-Verification required (commands/behavior, where agreed):
-Push/PR authorization scope (or explicitly none):
-Stop/escalation conditions:
-
-Return protocol:
-Report completion, failure or blockage to the delegating Router above using
-available T3 thread communication, preferably noninterrupting queue delivery.
-Include the report fields below. Check delivery; queued is not acknowledged.
-If delivery fails, retain a report in the agreed safe location, mark handback
-pending and do not assume the Router knows the result.
+Provider/model / permission constraints:
+Verification required:
+Push/PR authorization scope (or none):
+Stop / escalation conditions:
+Return destination: delegating Router above
 Fallback report location / confidentiality constraints:
-
-For grill-with-docs: send questions to the delegating Router, with stable
-question IDs. Await answers for dependent decisions; incorporate answers and
-their provenance into the grill documents. Do not ask the human directly or
-treat the Router's answer as human approval.
 ```
 
-If the launch operation does not yet expose the new Worker's identity, the Router records that link after launch; do not fabricate it in the initial brief.
+For a grill assignment, include the procedure in `grill.md`. For every assignment, include the handback procedure in `recovery.md` and the return fields below in the self-contained brief. The Worker cannot rely on unprovided Router history.
 
-## Durable assignment record
+## Durable assignment
 
 ```text
-Task / issue:
-Scope:
-Delegating Router link:
-Worker thread link:
+Task / issue / scope:
+Delegating Router link / Worker thread link:
 Project / branch / sanitized worktree reference:
-State: planned | assigned | working | blocked | handback-pending |
-       awaiting-verification | awaiting-human | done | cancelled
-Last observed state and evidence source:
-Latest result / commit / PR:
-Checks actually reported and evidence references:
-Unmet acceptance criteria / blockers:
-Next action and responsible party:
+State:
+Last observation / evidence source:
+Latest outcome / commit / PR:
+Checks reported / evidence references:
+Unmet criteria / blockers:
+Next action / responsible party:
 Last update (timestamp):
 ```
 
-These are coordination labels, not guaranteed T3 runtime enum values. `cancelled` requires evidence that execution stopped; a cancellation request alone is insufficient. `done` requires the issue's acceptance criteria and required verification/approvals, not just a successful send or commit.
+### Coordination states
 
-## Intermediate grill question / answer
+These labels are not T3 runtime enum values:
+
+- `planned`: scope recorded, no launch confirmed.
+- `assigned`: Worker launch confirmed.
+- `working`: activity observed, outcome pending.
+- `blocked`: a named missing decision/capability prevents dependent work.
+- `handback-pending`: report exists, return delivery or receipt unresolved.
+- `awaiting-verification`: reported outcome needs engineering evidence.
+- `awaiting-human`: a decision or gated authorization is pending.
+- `done`: the issue's criteria, verification and required approvals are satisfied.
+- `cancelled`: execution is confirmed stopped; record retained work separately.
+
+## Grill question / answer
 
 ```text
 Issue / Worker thread / delegating Router:
-Question ID:
-Question and context:
-Recommended answer and rationale (if applicable):
-Decision or work blocked:
+Question ID / question / context:
+Recommended answer / rationale (if applicable):
+Dependent decision:
 State: awaiting-router | awaiting-human | answered | delivery-pending
-Answer:
-Source: recorded context/decision reference OR explicit human response
-Originating Worker notified / delivery evidence:
-Documents updated:
+Answer / source reference or explicit human response:
+Worker notification / delivery evidence:
+Grill document updates:
 ```
-
-The Worker asks the Router; the Router answers from verified context or escalates to the human. An escalated question retains the same identity until the human answer is relayed back. Track pending state and next action durably; do not mark the question resolved merely because it was sent. A materially new question gets a new ID. A repeated delivery of the same question should not trigger duplicate human escalations.
 
 ## Worker return
 
 ```text
-Task / issue and Worker thread link:
+Task / issue / Worker link:
 Outcome: completed | partial | blocked | failed
-Changes and scope:
+Changes / scope:
 Branch / commit / PR:
-Verification actually performed and result:
-Evidence references:
-Unmet criteria and blockers:
-Decisions made, authority and context learned:
+Checks actually performed / results / evidence references:
+Unmet criteria / blockers:
+Decisions / authority / context learned:
 Uncommitted work / still-running operations:
 Recommended next action:
 Handback delivery state:
 ```
-
-The Router records receipt and the next action durably. A Worker may propose a decision; it must not attribute approval to a human without evidence. Never copy raw tool logs containing credentials or personal paths into public memory.
