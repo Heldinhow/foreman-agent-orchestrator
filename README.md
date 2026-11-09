@@ -1,12 +1,14 @@
 # Foreman
 
-T3-native coordination for AI engineering work: a Router with durable context and independent Worker threads, under human control.
+**Requires T3 Code.** Foreman coordinates AI engineering work through a Router, durable context and independent Worker threads, under human control.
+
+**Safety boundary:** locks, ledger records and human approval are written policy—instructions the agent follows—not runtime enforcement. They do not provide a security boundary or guarantee exclusive access, durable logging or authenticated approval.
 
 ## Current status
 
-**Architecture migration; not a completed product.** The owner replaced the earlier standalone TypeScript runtime design with instructions, policies and persistent memory used inside T3 Code. The existing `src/`, tests and old tickets describe the superseded implementation, not a working T3-native orchestrator.
+**Instructions and memory; not a completed product.** Foreman has no standalone runtime, test suite or CI. Live T3 coordination and recovery remain to be validated.
 
-Start with [AGENTS.md](AGENTS.md), [the current direction](docs/t3-native.md) and [ADR-0067](docs/decisions.md). The old spec and backlog are frozen until rewritten.
+Start with [AGENTS.md](AGENTS.md), [the current direction](docs/t3-native.md) and [ADR-0067](docs/decisions.md). A replacement specification is not yet written.
 
 ## How it works
 
@@ -26,7 +28,7 @@ The memory contract defines a workspace catalog with repository responsibilities
 
 The repository includes [`foreman-t3-coordination`](.agents/skills/foreman-t3-coordination/SKILL.md): native thread/worktree coordination, self-contained briefs, Worker handbacks, durable status and session recovery. It has no external scripts or skill dependencies.
 
-Compatible Agent Skills hosts can discover `.agents/skills/`; otherwise explicitly load the linked `SKILL.md`. Discovery varies by provider/harness. Live T3 handback and cross-machine recovery have not yet been integration-tested; see the bundled acceptance scenarios.
+If T3 Code does not automatically discover `.agents/skills/`, explicitly load the linked `SKILL.md`. Live T3 handback and cross-machine recovery have not yet been integration-tested; see the bundled acceptance scenarios.
 
 ## Persistent context
 
@@ -38,17 +40,8 @@ Keep these records sanitized: this is a public repository. Do not commit credent
 
 ## Clone and resume on another computer
 
-Once the documentation PR is merged:
-
 ```sh
 git clone https://github.com/Heldinhow/foreman-agent-orchestrator.git
-cd foreman-agent-orchestrator
-```
-
-Before merge, review the documentation branch with:
-
-```sh
-git clone --branch docs/t3-native-orchestration https://github.com/Heldinhow/foreman-agent-orchestrator.git
 cd foreman-agent-orchestrator
 ```
 
