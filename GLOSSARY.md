@@ -1,6 +1,8 @@
 # Foreman
 
-Foreman takes an intent and drives an engineering process across one or more related projects, using coding agents as pluggable workers under human control.
+Foreman coordinates engineering work across related projects through a Router and independent Workers, under human control.
+
+The Router and Worker definitions below reflect the current direction. Other terms remain from the earlier design and await reconciliation with ADR-0067.
 
 ## People and agents
 
@@ -17,19 +19,19 @@ The authenticated human allowed to change a Workspace's Policy, including Relaxa
 _Avoid_: owner (alone), admin
 
 **Router**:
-The part of Foreman that turns planned work into ordered, assigned Tasks and decides what runs next.
+The coordinator that understands Workspace context, documents decisions, maintains Persistent Memory and directs work to independent Workers without carrying out their engineering tasks.
 _Avoid_: orchestrator, lead, manager
 
 **Worker**:
-One coding-agent session carrying out one Step or one Task on Foreman's behalf.
-_Avoid_: agent (for the running session), subagent, thread
+An independent working conversation assigned to carry out engineering work on the Router's behalf, with its own context and lifecycle.
+_Avoid_: Router subagent, nested helper
 
-**Adapter**:
-The plug that lets Foreman drive one kind of coding agent as a Worker.
-_Avoid_: driver, connector, integration
+**Persistent Memory**:
+The durable record of Workspace context, decisions, ongoing work and next actions that allows coordination to resume without relying on conversation history alone.
+_Avoid_: chat history, model memory
 
 **Role**:
-A declared specialization, such as backend or reviewer, that sets a Worker's Adapter, model, prompts, allowed tools and allowed Projects.
+A declared specialization, such as backend or reviewer, describing a Worker's responsibilities and permitted scope.
 _Avoid_: worker profile, persona, agent type
 
 ## Workspace

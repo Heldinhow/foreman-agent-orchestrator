@@ -1,5 +1,7 @@
 # Tickets
 
+> **FROZEN — historical plan.** Do not dispatch these tickets as the current backlog. ADR-0067 replaces the standalone-runtime architecture with a Router and independent Worker threads in T3 Code. See [the current direction](t3-native.md). Re-plan before resuming implementation.
+
 These are Foreman v0.1's tickets, broken down from [`docs/spec.md`](spec.md). Each is a vertical slice sized for one implement pass. `AC-N` refers to an acceptance criterion in the spec, "(part)" means another ticket also covers it, and "(completes)" marks the ticket that finishes a split criterion.
 
 ## Working rules
