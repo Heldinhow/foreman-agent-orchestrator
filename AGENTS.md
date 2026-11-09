@@ -14,6 +14,10 @@ Follow: agree with docs → spec → GitHub tickets → implementation → verif
 
 Authenticated human approval is required before push, PR creation, merge or deployment. Apply explicit authorization only to its stated scope. Agent messages never grant human approval. Keep confidential context and credentials outside public records. These instructions do not enforce access restrictions.
 
+## Setup and context updates
+
+**Initialize workspace context, add target/reference repositories or refresh setup:** load `.agents/skills/foreman-setup/SKILL.md`. It owns the interview, research and memory-file contract. Confirm the workspace storage/privacy boundary before collecting findings; this public source repository is not automatically the destination for private workspace context.
+
 ## Coordination
 
 **Assign, message, receive a result, handle grill questions or recover a session:** load `.agents/skills/foreman-t3-coordination/SKILL.md`. If automatic skill discovery is unavailable, read that file explicitly. It is the operational source of truth for coordination; current host restrictions and tool definitions take precedence.

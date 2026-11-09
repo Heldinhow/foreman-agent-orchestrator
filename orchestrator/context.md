@@ -16,9 +16,13 @@ Agree with documentation, write the replacement specification, create GitHub tic
 
 The files in `orchestrator/` are the versioned, sanitized coordination memory. Record decisions, implementation status and Worker returns here so a new Router can recover context. Never commit secrets or confidential workspace details. Git clone transfers committed records, not machine-local T3 sessions or worktrees.
 
+## Setup contract
+
+Workspace onboarding and updates use `.agents/skills/foreman-setup/SKILL.md`. Its `references/memory.md` is authoritative for setup outputs, per-project/dependency records and the evidence index. Determine the actual workspace and privacy boundary before populating those records; this source repository does not yet contain a completed workspace interview or research dataset.
+
 ## Unresolved design work
 
 - Replacement specification and acceptance criteria.
 - Actual T3 thread communication and enforcement capabilities.
-- Recovery/reconciliation and onboarding details.
+- Live validation of recovery, onboarding and knowledge retrieval.
 - Migration of any useful behavior from the superseded runtime.

@@ -26,3 +26,10 @@ Record future coordination decisions here with source, rationale, affected work 
 - Authority: owner requested instruction changes, commit, push and clone on another computer.
 - Decision: commit sanitized instructions and coordination records. Clone the same repository on the other computer; verify T3/thread accessibility and reconstruct local worktrees separately.
 - Limit: no automatic migration of conversations, authentication, local processes or uncommitted changes is claimed.
+
+## D-005: Context-first setup
+
+- Authority: owner requested grilling-based onboarding, repository research and explicit memory files; tracked in issue #6.
+- Decision: `foreman-setup` interviews the operator about product and workspace, registers target/reference sources and assigns evidence-backed research to independent T3 Workers. Its memory reference defines the authoritative file ownership; findings, human decisions and hypotheses remain distinguishable.
+- Confirmation: unresolved gaps and their impact remain explicit. Setup readiness requires human confirmation for its stated scope, not a claim of total context.
+- Use: later demands retrieve relevant context and gaps; roadmap proposals use product goals and dependencies but require human priorities and confirmation. Private workspace context does not belong in the public source repository.

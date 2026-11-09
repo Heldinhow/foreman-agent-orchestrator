@@ -16,6 +16,12 @@ Start with [AGENTS.md](AGENTS.md), [the current direction](docs/t3-native.md) an
 - The process is: agree with docs → spec → GitHub tickets → implementation → verification/review → PR.
 - Human approval is distinct from agent messages. Instructions alone are not enforced security controls.
 
+## Setup skill
+
+Load [`foreman-setup`](.agents/skills/foreman-setup/SKILL.md) to initialize or refresh a workspace. It interviews the operator about the product, registers target/reference repositories, routes read-only research to independent T3 Workers and defines where sourced knowledge and open gaps are stored. Setup ends with explicit confirmation of the understood scope, not a promise of complete knowledge.
+
+The memory contract defines a context index, per-project notes, dependency records, an evidence index and setup progress alongside decisions/status. Confirm a private destination for confidential workspace findings; this public repository is not their default home. The skill is instructions, not an implemented `foreman init` CLI. Live onboarding remains untested.
+
 ## Coordination skill
 
 The repository includes [`foreman-t3-coordination`](.agents/skills/foreman-t3-coordination/SKILL.md): native thread/worktree coordination, self-contained briefs, Worker handbacks, durable status and session recovery. It has no external scripts or skill dependencies.
