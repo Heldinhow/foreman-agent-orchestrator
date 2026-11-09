@@ -1,15 +1,5 @@
-# Real config: only the examples are committed (ADR-0004, ADR-0015)
-/foreman/
-/config/*
-!/config/*.example.*
-
-# State and secrets
+# Private workspace state and secrets
 /orchestrator/private/
 memory/
 .env
 .env.*
-!.env.example
-
-# Build output and dependencies
-dist/
-node_modules/

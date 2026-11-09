@@ -6,7 +6,7 @@ Foreman coordinates engineering through a Router thread and independent Worker t
 
 ## Repository state
 
-This repository contains an incomplete TypeScript implementation of the earlier standalone-runtime design. Preserve it as historical material until the replacement specification determines what to retain. The previous spec and implementation ticket plan are frozen, not an active backlog.
+This repository contains T3 Code instructions, skills and sanitized coordination memory. The earlier runtime and ticket plan have been removed; a replacement specification remains to be written.
 
 ## Process
 
@@ -29,4 +29,4 @@ Workspace onboarding and updates use `.agents/skills/foreman-setup/SKILL.md`. It
 - Replacement specification and acceptance criteria.
 - Actual T3 thread communication and enforcement capabilities.
 - Live validation of recovery, onboarding and knowledge retrieval.
-- Migration of any useful behavior from the superseded runtime.
+- Identification of useful ideas from historical designs, if needed.

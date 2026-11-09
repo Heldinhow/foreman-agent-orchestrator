@@ -7,7 +7,7 @@ Record future coordination decisions here with source, rationale, affected work 
 - Authority: owner confirmation; ADR-0067.
 - Decision: Router instructions and durable memory, with independent T3 Worker threads; no standalone Foreman runtime or Router subagents as Workers.
 - Reason: preserve independent working contexts and resumable coordination in the environment the operator uses.
-- Impact: freeze the old spec/tickets; write the replacement spec before implementation.
+- Impact: the old runtime and backlog were removed; write the replacement spec before implementation.
 
 ## D-002: Durable status and Worker handback
 

@@ -43,10 +43,8 @@ The file layout, onboarding procedure, update protocol, recovery rules and enfor
 
 ## Migration
 
-1. Freeze the previous standalone-runtime backlog.
-2. Rewrite the specification and tickets for instructions, memory, thread coordination, recovery and onboarding.
-3. Inspect relevant T3 capabilities before choosing tooling or claiming enforcement guarantees.
-4. Create the Router instructions and memory templates; validate with independent Worker threads and a restart/recovery scenario.
-5. Review old code for reusable ideas only; do not keep the standalone runtime merely to preserve sunk work.
+1. Write a replacement specification and tickets for instructions, memory, thread coordination, recovery and onboarding.
+2. Inspect relevant T3 capabilities before choosing tooling or claiming enforcement guarantees.
+3. Validate Router instructions and memory templates with independent Worker threads and a restart/recovery scenario.
 
-Existing TypeScript code and historical tickets remain in the repository for reference. Their presence does not mean this architecture is implemented. No new runtime implementation is authorized by this document alone.
+The previous runtime and backlog were removed; Git history retains historical context. No new runtime implementation is authorized by this document alone.

@@ -1,6 +1,6 @@
 # Foreman
 
-Foreman is a coordinating Router thread in T3 Code, with independent Worker threads and versioned memory. ADR-0067 in `docs/decisions.md` supersedes the standalone runtime; `docs/spec.md` and the old `docs/tickets/` are historical, not an active backlog.
+Foreman requires T3 Code: a coordinating Router thread, independent Worker threads and versioned memory. ADR-0067 in `docs/decisions.md` describes the architecture. Locks, ledger records and human approval are written policy, not runtime enforcement.
 
 ## Start or resume
 
