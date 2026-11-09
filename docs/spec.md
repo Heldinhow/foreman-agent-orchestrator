@@ -772,7 +772,7 @@ The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow sy
 
 | File | Requirements |
 |---|---|
-| `README.md` | English: pitch, quickstart, architecture, safety model with limits stated plainly, roadmap including v0.2 dashboard, cost and difficulty routing, and budgets |
+| `README.md` | English: pitch, quickstart, architecture, safety model with limits stated plainly, roadmap including v0.2 dashboard, cost and difficulty routing, budgets, and an organization policy layer (enforced minimums) |
 | `README.pt-BR.md` | The same sections in pt-BR |
 | `LICENSE` | MIT, copyright "Foreman contributors" |
 | `CONTRIBUTING.md` | Setup, tests, Adapter authoring, no personal data, no telemetry |
@@ -784,6 +784,19 @@ The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow sy
 | `.env.example` | Placeholders only |
 | `prompts/en/`, `prompts/pt-BR/` | One prompt per Step and system Step, plus the Worker protocol |
 | `.agents/skills/foreman-init/SKILL.md` | The onboarding skill |
+| `bun run scan` | The repository scan described below |
+
+### Repository scan
+
+`bun run scan` enforces ADR-0003 on the repository. It checks git-tracked files plus untracked files that aren't ignored, and exits non-zero on any finding. Each finding shows file, line and rule, with the matched value masked, so the report can't itself leak a secret.
+
+- **Tokens:** GitHub (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`), `sk-` style API keys, Slack `xox` tokens, AWS `AKIA` keys and private key headers. Each pattern requires a word boundary and a minimum length, so ordinary words such as "task-based" don't match.
+- **Personal paths:** `/home/<name>`, `/Users/<name>` and `C:\Users\<name>`, apart from obvious placeholders.
+- **Hostnames:** internal-looking names such as `*.local`, `*.internal` and `*.corp`, and private IP addresses.
+- **This machine's identity:** the current `hostname`, `$USER` and git `user.name`, read at run time.
+- **Personal names:** read from an optional, gitignored local denylist. The repository can't ship one, because a list of personal names would itself break ADR-0003.
+
+A committed allow file lists accepted findings by file and rule, each with a reason. `--history` also scans past commits. Test fixtures build token-shaped strings at run time, so the repository's own scan stays clean.
 
 The README safety model must state these limits:
 
@@ -826,6 +839,7 @@ The owner delegated these, and they refine the ADRs without contradicting them:
 23. **`approvals.acceptAgentMessages` is a real, working key**, as the owner made this a default rather than a lock. It covers Outbound Actions only.
 24. **GitHub Policy confirmation is through a PR on the Workspace's own repository**, with reviewers explicitly marked `policyOwner: true` (ADR-0059).
 25. **Project layers live in the Workspace.** A file in a Project's repository is untrusted and ignored.
+26. **The scan's personal-name list is local and gitignored**, and its machine-identity check reads values at run time, so catching personal data doesn't require committing any.
 
 ## Acceptance Criteria
 
@@ -970,6 +984,11 @@ Each criterion must be demonstrated by a test unless marked otherwise. The test 
 - **AC-102.** A Policy Change's Ledger event holds only the layer name for the user override, and the sentinel check in AC-55 still passes.
 - **AC-103.** A tightening accepted during a Run stops a not-yet-attempted Outbound Action, and the action records the Policy hash it used.
 
+### Added during ticketing
+
+- **AC-104.** `bun run scan` fails on a planted instance of each rule in "Repository scan", masks the matched value, doesn't match ordinary words such as "task-based", honours the allow file and the local denylist, and passes on this repository. `--history` finds a value that only exists in a past commit.
+- **AC-105.** Provider detection during `foreman init` uses `opencode models` when available and environment variable names otherwise. A canary secret value in the environment never appears in any output, file or Ledger event, and the Operator confirms the result.
+
 ## Testing Decisions
 
 ### What makes a good test
@@ -1031,6 +1050,8 @@ Pure logic with many edge cases gets direct tests through its module interface: 
 | Polling | Off by default, dedup, withheld text, no effects | 79 |
 | Locale | pt-BR selection, fallback, parity | 80, 81 |
 | Quality | Build and typecheck, offline, no telemetry, placeholders, deliverables | 82–84 |
+| Repository scan | Each rule planted in a temp repository, masking, allow file, local denylist, history, this repository clean | 104 |
+| Provider detection | Fake `opencode models`, env var names only, canary value | 105 |
 | OpenCode (live or fake provider) | The "Required first proof" | 4 |
 
 ### Commands and environment
@@ -1039,7 +1060,7 @@ Pure logic with many edge cases gets direct tests through its module interface: 
 
 ## Out of Scope
 
-- **Deferred to v0.2 (README roadmap):** dashboard, cost and difficulty routing, budgets.
+- **Deferred to v0.2 (README roadmap):** dashboard, cost and difficulty routing, budgets, and an organization policy layer with enforced minimums (ADR-0060).
 - **Hosted anything:** no SaaS, background service, accounts or telemetry.
 - **Working non-reference Adapters:** T3 Code, Claude Code, Codex and Pi are stubs.
 - **Working non-GitHub Remotes:** other hosts are stubs or roadmap items.
@@ -1050,7 +1071,7 @@ Pure logic with many edge cases gets direct tests through its module interface: 
 - **Automatic rollback** across Projects.
 - **Windows** and network filesystems for `memory/`.
 - **Mandatory sandboxing**, and sandboxes other than bubblewrap.
-- **Organization-enforced Policy:** no layer above the user override, signed Policy, or any floor an administrator can impose.
+- **Signed Policy.**
 - **A way to apply in-flight Policy to running Tasks:** the Policy Owner abandons and restarts instead.
 - **Plugin marketplace** or auto-install.
 - **Compiled single binary.**
@@ -1060,6 +1081,6 @@ Pure logic with many edge cases gets direct tests through its module interface: 
 
 - **Unverified at the time of writing:** OpenCode's actual deny-rule behaviour, its `--standalone` environment handling, its read-only mode, its JSON format, and whether a local fake provider can drive it. All are covered by the "Required first proof". The Adapter's safe starting state means a negative result reduces convenience, not safety.
 - **Threat model honesty:** Foreman's layers are strong against agent mistakes and modest against a deliberately malicious Worker under the same user. Tests prove that each layer works. They don't prove that a same-user adversary can't get around it, and the README must not imply otherwise.
-- **Corporate use:** with nothing hard-locked, a company can't impose a minimum through Foreman itself. It would need to control who can confirm on the machine, such as by running Foreman under a dedicated user. The README must say this rather than implying Policy is a compliance control.
+- **Corporate use:** with nothing hard-locked, a company can't impose a minimum through Foreman v0.1. It would need to control who can confirm on the machine, such as by running Foreman under a dedicated user. The README must say this rather than implying Policy is a compliance control, and point to the organization policy layer on the v0.2 roadmap (ADR-0060).
 - **Implementation order for tickets:** the mechanism modules have the highest cost of error, so tickets should build them with their tests before anything relies on them. Build the Ledger first, then Policy and the Check Engine, then Locks, Human Channels and the Outbound Executor, then the Pipeline Engine. No ticket may add a hardcoded behaviour rule: each one reads its rules from Policy, and each checkpoint it adds comes with its Safety Default in `policy/defaults.yaml` and its leaf classification. `docs/tickets` will set the exact order.
 - **Development process:** implementation happens locally in small verifiable commits, with no remote (ADR-0010).

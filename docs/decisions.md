@@ -69,6 +69,8 @@ v0.1 targets Linux and macOS. Windows is unsupported because the lock, hook and 
 
 **Decided by:** the owner · **Source:** brief 8, brief 9
 
+**Status:** Amended by ADR-0060, which adds an organization policy layer to the v0.2 roadmap.
+
 v0.1 includes:
 
 - pluggable Adapters
@@ -595,3 +597,9 @@ Each decision records the rule and Policy Layer that produced it, so behaviour c
 **Decided by:** delegated engineering · **Source:** vocabulary conflict between `adaptive` and ADR-0050
 
 The glossary's **Owner** decides what the Foreman project becomes. The adaptive decision's "owner" is the authenticated human who controls one installation's behaviour. That's a different person in most deployments, so it is named **Policy Owner**. Locally, this is the Operator at a TTY. On GitHub, it is an allowlisted reviewer explicitly marked `policyOwner: true`, so being able to approve a push doesn't grant the right to relax Policy.
+
+### ADR-0060: Organization policy layer deferred to v0.2
+
+**Decided by:** the owner · **Source:** tickets round (2026-11-09) · **Amends:** ADR-0009
+
+With nothing hard-locked (ADR-0051), a company can't impose a minimum through Foreman v0.1. An enforced minimum stays out of scope for v0.1, and an "organization policy layer (enforced minimums)" goes on the README's v0.2 roadmap, next to the dashboard, cost and difficulty routing, and budgets.
