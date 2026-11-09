@@ -9,6 +9,8 @@ export const CHECKPOINT_FACTS = {
   "scan.read": ["path"],
   "adapter.render": ["path"],
   "diff.path": ["path"],
+  /** The `path` is a variable name, judged as a one-segment path so that rules can glob it. */
+  "env.passthrough": ["path"],
   "task.close": ["evidence"],
   "outbound.push": [],
   "outbound.pr": [],

@@ -97,8 +97,29 @@ function checkRuleConditions(id: string, rule: Rule, context: z.RefinementCtx): 
  * A layer holds only what differs, so this applies to `PolicySchema` and so to the merged
  * result, not to a layer alone. A missing rule can't quietly mean "allow" (ADR-0058).
  */
+const EnvName = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
+/** An environment variable name, or a prefix ending in `*` such as `LC_*`. */
+const EnvPattern = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*\*?$/);
+const GitSetting = z.string().regex(/^[A-Za-z][A-Za-z0-9.-]*=/, "must be a git config setting such as core.pager=cat");
+/** A hook file name, so it can't hold a path. */
+const HookName = z.string().regex(/^[a-z][a-z0-9-]*$/);
+
 const GuardSchema = z
-  .strictObject({ rules: z.record(Name, RuleSchema) })
+  .strictObject({
+    rules: z.record(Name, RuleSchema),
+    /** What a Worker's environment is built from. Credential refusals are rules at `env.passthrough`. */
+    env: z.strictObject({ allow: z.array(EnvPattern) }),
+    git: z.strictObject({
+      /** Config settings that Foreman's own git commands override, because they can run code. */
+      overrides: z.array(GitSetting),
+      /** Hooks that fail in a Worker's environment. Every other hook is chained to the Project's own. */
+      workerRejectedHooks: z.array(HookName),
+      /** Set in every Worker's environment. */
+      workerEnv: z.record(EnvName, Text),
+      /** Variables that point at a new empty directory in every Worker's environment. */
+      emptyDirEnv: z.array(EnvName),
+    }),
+  })
   .superRefine(({ rules }, context) => {
     for (const [id, rule] of Object.entries(rules)) checkRuleConditions(id, rule, context);
 

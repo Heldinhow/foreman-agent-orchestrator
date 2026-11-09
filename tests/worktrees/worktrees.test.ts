@@ -148,6 +148,23 @@ describe("capture", () => {
 
     expect(await exists(marker)).toBe(false);
   });
+
+  test("the config overrides on Foreman's git come from guard.git Policy: with none listed, the planted hook runs", async () => {
+    const { repo, worktrees, prepare } = await setup({
+      workspace: "schemaVersion: 1\npolicies:\n  guard:\n    git:\n      overrides: []\n",
+    });
+    const marker = join(await makeTempDir(), "hook-ran");
+    const hooks = await makeTempDir();
+    await writeFile(join(hooks, "post-commit"), `#!/bin/sh\ntouch ${marker}\n`);
+    await chmod(join(hooks, "post-commit"), 0o755);
+    await repo.git("config", "core.hooksPath", hooks);
+    const task = await prepare("one");
+    await writeIn(task.path, "a.txt", "a\n");
+
+    await worktrees.capture(task.path);
+
+    expect(await exists(marker)).toBe(true);
+  });
 });
 
 describe("a merge conflict", () => {

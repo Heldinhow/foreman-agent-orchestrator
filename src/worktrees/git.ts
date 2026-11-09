@@ -1,14 +1,8 @@
 /**
- * Foreman's own git use. A Worker can edit a repository's shared config, so every command
- * overrides the settings that would run code from it with Foreman's privileges: hooks,
- * the file system monitor, the pager and the ssh command.
+ * Git use for Foreman and for reading a repository. A Worker can edit a repository's shared
+ * config, so Foreman's own commands pass the `guard.git.overrides` settings from Policy with
+ * `-c`, which beat any config file: settings that would run code with Foreman's privileges.
  */
-const EXEC_CAPABLE_CONFIG = [
-  "core.hooksPath=/dev/null",
-  "core.fsmonitor=false",
-  "core.pager=cat",
-  "core.sshCommand=ssh",
-];
 
 export interface GitIdentity {
   name: string;
@@ -34,20 +28,31 @@ export interface Git {
   run(cwd: string, args: readonly string[]): Promise<string>;
 }
 
-/** `env` is used as given, so the caller decides what git can see of the machine. */
-export function createGit(env: Record<string, string>, identity: GitIdentity): Git {
+/**
+ * `env` is used as given, so the caller decides what git can see of the machine. With no
+ * identity, none is set, which suits reads. `overrides` are `name=value` config settings.
+ */
+export function createGit(
+  env: Record<string, string>,
+  identity: GitIdentity | undefined,
+  overrides: readonly string[],
+): Git {
   const fullEnv = {
     ...env,
     GIT_TERMINAL_PROMPT: "0",
-    GIT_AUTHOR_NAME: identity.name,
-    GIT_AUTHOR_EMAIL: identity.email,
-    GIT_COMMITTER_NAME: identity.name,
-    GIT_COMMITTER_EMAIL: identity.email,
+    ...(identity === undefined
+      ? {}
+      : {
+          GIT_AUTHOR_NAME: identity.name,
+          GIT_AUTHOR_EMAIL: identity.email,
+          GIT_COMMITTER_NAME: identity.name,
+          GIT_COMMITTER_EMAIL: identity.email,
+        }),
   };
-  const overrides = EXEC_CAPABLE_CONFIG.flatMap((setting) => ["-c", setting]);
+  const settings = overrides.flatMap((setting) => ["-c", setting]);
 
   async function tryGit(cwd: string, args: readonly string[]): Promise<GitResult> {
-    const child = Bun.spawn(["git", ...overrides, ...args], {
+    const child = Bun.spawn(["git", ...settings, ...args], {
       cwd,
       env: fullEnv,
       stdin: "ignore",

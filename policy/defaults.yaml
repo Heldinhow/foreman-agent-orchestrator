@@ -71,6 +71,23 @@ policies:
         checkpoints: [worktree.copy, worktree.tracked, scan.read, adapter.render, diff.path]
         effect: allow
 
+      # Credentials that never reach a Worker, whichever list names them. A Remote or deploy
+      # config's credential names are refused as well. Every other name is allowed.
+      deny-credential-env:
+        checkpoints: [env.passthrough]
+        match:
+          paths:
+            - GH_TOKEN
+            - GITHUB_TOKEN
+            - GH_ENTERPRISE_TOKEN
+            - GITHUB_ENTERPRISE_TOKEN
+            - SSH_AUTH_SOCK
+            - FOREMAN_GITHUB_TOKEN
+        effect: deny
+      allow-other-env:
+        checkpoints: [env.passthrough]
+        effect: allow
+
       # A Task can't close without Evidence, unless the rule below says it's present.
       deny-close-without-evidence:
         checkpoints: [task.close]
@@ -94,6 +111,24 @@ policies:
       require-approval-deploy:
         checkpoints: [outbound.deploy]
         effect: require-approval
+
+    # A Worker's environment is built from these names, never inherited.
+    env:
+      allow: [PATH, LANG, "LC_*", TERM, TMPDIR, HOME]
+
+    git:
+      # Foreman's own git commands override these, since a Worker can set them in the shared
+      # config to run code with Foreman's privileges.
+      overrides:
+        - core.hooksPath=/dev/null
+        - core.fsmonitor=false
+        - core.pager=cat
+        - core.sshCommand=ssh
+      # In a Worker's environment these hooks fail, and every other hook runs the Project's own.
+      workerRejectedHooks: [pre-push]
+      workerEnv:
+        GIT_TERMINAL_PROMPT: "0"
+      emptyDirEnv: [GH_CONFIG_DIR]
 
   sandbox: none
 

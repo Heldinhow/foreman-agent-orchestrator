@@ -4,17 +4,17 @@
 
 **Blocked by:** [004: Check Engine](004-check-engine.md), [011: Task worktrees and Integration Branches](011-worktrees.md), [012: Adapter contract, fake Adapter and stubs](012-adapter-contract.md)
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Acceptance criteria
 
-- [ ] **AC-5:** a Worker receives exactly the built environment, and a canary in the supervisor's environment isn't visible.
-- [ ] Per ADR-0064, the `foreman` command doesn't load `.env` or `bunfig.toml` from the current directory: a real-process test runs the built CLI from a directory holding a planted `bunfig.toml` preload and a `.env` canary, and shows that neither took effect. The Bun version and the command's launcher behaviour are the proof, so don't only assert on flags.
+- [x] **AC-5:** a Worker receives exactly the built environment, and a canary in the supervisor's environment isn't visible.
+- [x] Per ADR-0064, the `foreman` command doesn't load `.env` or `bunfig.toml` from the current directory: a real-process test runs the built CLI from a directory holding a planted `bunfig.toml` preload and a `.env` canary, and shows that neither took effect. The Bun version and the command's launcher behaviour are the proof, so don't only assert on flags.
 - [ ] **AC-45:** a `.env.example` remains available, and `.env` stays denied until a confirmed Relaxation changes it.
 - [ ] **AC-46:** a refused credential name in `env.passthrough` isn't passed, and a file edit adding one has no effect until confirmed.
-- [ ] **AC-47:** a Worker's `git push` is blocked by the injected hook, with no change to the repository's config.
-- [ ] `FOREMAN_WORKER`, `FOREMAN_RUN_ID` and `FOREMAN_TASK_ID` are always set and can't be removed by Policy.
-- [ ] Other Project hooks are chained, and allowlists and never-pass names come from `policy/defaults.yaml`.
+- [x] **AC-47:** a Worker's `git push` is blocked by the injected hook, with no change to the repository's config.
+- [x] `FOREMAN_WORKER`, `FOREMAN_RUN_ID` and `FOREMAN_TASK_ID` are always set and can't be removed by Policy.
+- [x] Other Project hooks are chained, and allowlists and never-pass names come from `policy/defaults.yaml`.
 
 ## Tests
 

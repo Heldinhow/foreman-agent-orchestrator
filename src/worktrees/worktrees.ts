@@ -75,7 +75,7 @@ function checkName(kind: string, value: string): void {
 }
 
 export function openWorktrees(deps: WorktreeDeps) {
-  const git: Git = createGit(deps.env, deps.identity ?? DEFAULT_IDENTITY);
+  const git: Git = createGit(deps.env, deps.identity ?? DEFAULT_IDENTITY, deps.policy.policy.policies.guard.git.overrides);
 
   /** Names what a rule other than `allow` or `flag` says about these paths, or nothing. */
   function refusals(checkpoint: Checkpoint, paths: readonly string[]): { rule: string; layer: string; paths: string[] }[] {

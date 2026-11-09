@@ -289,7 +289,7 @@ describe("a check that can't be judged is refused rather than allowed", () => {
     const { "require-approval-push": _removed, ...rules } = policy.policies.guard.rules;
     const unvalidated = {
       explain,
-      policy: { ...policy, policies: { ...policy.policies, guard: { rules } } },
+      policy: { ...policy, policies: { ...policy.policies, guard: { ...policy.policies.guard, rules } } },
     };
 
     expect(() => evaluate("outbound.push", {}, unvalidated)).toThrow("Policy has no rule set for outbound.push");

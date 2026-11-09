@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file --config=/dev/null
 import { createLocalHumanChannel } from "./approvals/local-channel.ts";
 import { createApp } from "./cli/app.ts";
 import { shippedDefaultsFile } from "./policy/shipped-defaults.ts";
