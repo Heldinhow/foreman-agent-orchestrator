@@ -4,16 +4,16 @@
 
 **Blocked by:** [001: Project skeleton, CLI seam and build](001-project-skeleton.md), [002: Ledger](002-ledger.md)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
-- [ ] **AC-86:** precedence is built-in < Workspace < Project < user override, named rules merge by ID, and `foreman policy show --explain <key>` names the layer.
-- [ ] **AC-40:** the shipped file holds Propose Mode, Approval before push, PR, merge and deploy, the `.env` deny, Evidence to close a Task, and agent messages not counting.
-- [ ] **AC-101:** a policy file inside a Project's repository is ignored, even in the correct format.
-- [ ] **AC-75 (Policy part):** unknown keys, bad references and wrong types each name the file, key and reason.
-- [ ] Commands find the Workspace from `--dir`, then `FOREMAN_WORKSPACE`, then the nearest ancestor.
-- [ ] The user override is read from `$XDG_CONFIG_HOME` or `~/.config`, and tests use a temp directory rather than the real home.
+- [x] **AC-86:** precedence is built-in < Workspace < Project < user override, named rules merge by ID, and `foreman policy show --explain <key>` names the layer.
+- [x] **AC-40:** the shipped file holds Propose Mode, Approval before push, PR, merge and deploy, the `.env` deny, Evidence to close a Task, and agent messages not counting.
+- [x] **AC-101:** a policy file inside a Project's repository is ignored, even in the correct format.
+- [x] **AC-75 (Policy part):** unknown keys, bad references and wrong types each name the file, key and reason.
+- [x] Commands find the Workspace from `--dir`, then `FOREMAN_WORKSPACE`, then the nearest ancestor.
+- [x] The user override is read from `$XDG_CONFIG_HOME` or `~/.config`, and tests use a temp directory rather than the real home.
 
 ## Tests
 

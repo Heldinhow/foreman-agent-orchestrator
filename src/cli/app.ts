@@ -1,4 +1,8 @@
 import { version } from "../../package.json";
+import { ConfigError } from "../config/errors.ts";
+import { policyCommand } from "./commands/policy.ts";
+import { validateCommand } from "./commands/validate.ts";
+import { UsageError } from "./errors.ts";
 import { ExitCode } from "./exit-codes.ts";
 
 export interface Clock {
@@ -13,6 +17,10 @@ export interface Terminal {
 export interface AppDeps {
   clock: Clock;
   terminal: Terminal;
+  env: Record<string, string | undefined>;
+  cwd: string;
+  /** The shipped `policy/defaults.yaml`, the built-in Policy Layer. */
+  policyDefaultsFile: string;
 }
 
 export interface App {
@@ -20,7 +28,7 @@ export interface App {
   exec(argv: string[]): Promise<ExitCode>;
 }
 
-type Command = (args: string[], deps: AppDeps) => ExitCode | Promise<ExitCode>;
+export type Command = (args: string[], deps: AppDeps) => ExitCode | Promise<ExitCode>;
 
 const commands = new Map<string, Command>([
   [
@@ -30,6 +38,8 @@ const commands = new Map<string, Command>([
       return ExitCode.Success;
     },
   ],
+  ["policy", policyCommand],
+  ["validate", validateCommand],
 ]);
 
 const USAGE = "Usage: foreman <command>\n";
@@ -52,6 +62,10 @@ export function createApp(deps: AppDeps): App {
       try {
         return await command(args, deps);
       } catch (error) {
+        if (error instanceof UsageError || error instanceof ConfigError) {
+          deps.terminal.writeErr(`foreman: ${error.message}\n`);
+          return ExitCode.Usage;
+        }
         const reason = error instanceof Error ? error.message : String(error);
         deps.terminal.writeErr(`foreman: ${reason}\n`);
         return ExitCode.RuntimeError;

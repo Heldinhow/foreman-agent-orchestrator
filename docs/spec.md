@@ -244,7 +244,7 @@ Two other Policy locations sit outside the Workspace: the shipped `policy/defaul
 | `foreman approve <actionId\|runId>` / `foreman reject <actionId\|runId>` | Decide Gates and Outbound Actions |
 | `foreman lessons list\|show\|approve\|reject` | Manage Lessons |
 | `foreman proposals list\|show\|approve\|reject` | Manage Change Proposals |
-| `foreman policy show [--effective] [--explain <key>] [--deviations]` | Show Policy, which layer set a key, and differences from the Safety Defaults |
+| `foreman policy show [--effective] [--explain <key>] [--project <name>] [--deviations]` | Show Policy, which layer set a key (for one Project with `--project`), and differences from the Safety Defaults |
 | `foreman policy change "<text>"` | Draft a Policy Change from natural language, then confirm it |
 | `foreman policy apply [--from <file>] [--from-pr <number>] [--yes]` | Show and accept changed Policy files or a drafted diff |
 | `foreman policy history` / `foreman policy revert <changeId>` | List and undo Policy Changes |

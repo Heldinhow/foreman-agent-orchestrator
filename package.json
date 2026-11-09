@@ -10,10 +10,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "bun run typecheck && bun build src/main.ts --target=bun --outdir=dist && chmod +x dist/main.js"
+    "build": "bun run typecheck && bun build src/main.ts --target=bun --outdir=dist && chmod +x dist/main.js && mkdir -p dist/policy && cp policy/defaults.yaml dist/policy/defaults.yaml"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
   }
 }
