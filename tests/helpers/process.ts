@@ -29,11 +29,17 @@ export function hermeticEnv(home: string): Record<string, string> {
 
 export async function run(
   command: string[],
-  options: { cwd: string; env: Record<string, string> },
+  options: {
+    cwd: string;
+    env: Record<string, string>;
+    /** Runs in a new session, so there's no controlling terminal however the tests were started. */
+    noTerminal?: boolean;
+  },
 ): Promise<RunResult> {
   const child = Bun.spawn(command, {
     cwd: options.cwd,
     env: options.env,
+    detached: options.noTerminal,
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",

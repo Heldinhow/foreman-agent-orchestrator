@@ -21,6 +21,9 @@ export interface LedgerEvent {
 export const ACTION_PENDING = "action.pending";
 export const ACTION_DONE = "action.done";
 
+export const APPROVAL_REQUESTED = "approval.requested";
+export const APPROVAL_GRANTED = "approval.granted";
+export const APPROVAL_REJECTED = "approval.rejected";
 /** Written when a claimant wins a lock. `generation` numbers each holder in turn. */
 export const TASK_LOCKED = "task.locked";
 export const RUN_LOCKED = "run.locked";

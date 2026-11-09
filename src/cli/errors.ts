@@ -7,9 +7,10 @@ export class UsageError extends Error {}
 export function parseCommandArgs<const Options extends NonNullable<ParseArgsConfig["options"]>>(
   args: string[],
   options: Options,
+  allowPositionals = false,
 ) {
   try {
-    return parseArgs({ args, options, strict: true, allowPositionals: false });
+    return parseArgs({ args, options, strict: true, allowPositionals });
   } catch (error) {
     throw new UsageError((error as Error).message);
   }

@@ -1,5 +1,7 @@
 import { version } from "../../package.json";
+import type { HumanChannel } from "../approvals/human-channel.ts";
 import { ConfigError } from "../config/errors.ts";
+import { approveCommand, rejectCommand } from "./commands/decide.ts";
 import { policyCommand } from "./commands/policy.ts";
 import { validateCommand } from "./commands/validate.ts";
 import { UsageError } from "./errors.ts";
@@ -17,6 +19,7 @@ export interface Terminal {
 export interface AppDeps {
   clock: Clock;
   terminal: Terminal;
+  humanChannel: HumanChannel;
   env: Record<string, string | undefined>;
   cwd: string;
   /** The shipped `policy/defaults.yaml`, the built-in Policy Layer. */
@@ -38,6 +41,8 @@ const commands = new Map<string, Command>([
       return ExitCode.Success;
     },
   ],
+  ["approve", approveCommand],
+  ["reject", rejectCommand],
   ["policy", policyCommand],
   ["validate", validateCommand],
 ]);

@@ -1,6 +1,9 @@
 import {
   ACTION_DONE,
   ACTION_PENDING,
+  APPROVAL_GRANTED,
+  APPROVAL_REJECTED,
+  APPROVAL_REQUESTED,
   RUN_LOCKED,
   TASK_CLOSED,
   TASK_LOCKED,
@@ -20,6 +23,19 @@ export interface ActionRecord {
   outcome?: string;
 }
 
+export type ApprovalDecision = "awaiting" | "approved" | "rejected";
+
+export interface ApprovalRequestRecord {
+  actionId: string;
+  runId: string;
+  taskId?: string | null;
+  kind: string;
+  target: string;
+  headSha: string;
+  diffSummary: string;
+  decision: ApprovalDecision;
+}
+
 export interface TaskRecord {
   /** The highest generation the Ledger has seen for this Task's lock. */
   generation: number;
@@ -30,12 +46,14 @@ export interface TaskRecord {
 /** State derived from the Ledger. `actions` keeps the order actions were last intended. */
 export interface LedgerState {
   actions: ReadonlyMap<string, ActionRecord>;
+  approvalRequests: ReadonlyMap<string, ApprovalRequestRecord>;
   tasks: ReadonlyMap<string, TaskRecord>;
   runGenerations: ReadonlyMap<string, number>;
 }
 
 export const initialState: LedgerState = {
   actions: new Map(),
+  approvalRequests: new Map(),
   tasks: new Map(),
   runGenerations: new Map(),
 };
@@ -43,6 +61,9 @@ export const initialState: LedgerState = {
 export function reduce(state: LedgerState, event: LedgerEvent): LedgerState {
   if (event.type === ACTION_PENDING) return recordPending(state, event);
   if (event.type === ACTION_DONE) return recordDone(state, event);
+  if (event.type === APPROVAL_REQUESTED) return recordRequest(state, event);
+  if (event.type === APPROVAL_GRANTED) return recordDecision(state, event, "approved");
+  if (event.type === APPROVAL_REJECTED) return recordDecision(state, event, "rejected");
   if (event.type === TASK_LOCKED) return recordTaskLocked(state, event);
   if (event.type === RUN_LOCKED) return recordRunLocked(state, event);
   if (event.type === TASK_CLOSED) return recordTaskClosed(state, event);
@@ -100,6 +121,40 @@ function recordDone(state: LedgerState, event: LedgerEvent): LedgerState {
   const actions = new Map(state.actions);
   actions.set(actionId, { ...pending, state: "done", outcome: event.outcome });
   return { ...state, actions };
+}
+
+/** Recording a request again replaces it, so any earlier decision no longer stands. */
+function recordRequest(state: LedgerState, event: LedgerEvent): LedgerState {
+  const actionId = event.actionId as string;
+  const approvalRequests = new Map(state.approvalRequests);
+  approvalRequests.set(actionId, {
+    actionId,
+    runId: event.runId as string,
+    taskId: event.taskId,
+    kind: event.kind as string,
+    target: event.target as string,
+    headSha: event.headSha as string,
+    diffSummary: event.data?.diffSummary as string,
+    decision: "awaiting",
+  });
+  return { ...state, approvalRequests };
+}
+
+function recordDecision(
+  state: LedgerState,
+  event: LedgerEvent,
+  decision: ApprovalDecision,
+): LedgerState {
+  const actionId = event.actionId as string;
+  const request = state.approvalRequests.get(actionId);
+  if (request === undefined) {
+    throw new LedgerCorruptError(
+      `event ${event.eventId} decides approval request ${actionId} with no request before it`,
+    );
+  }
+  const approvalRequests = new Map(state.approvalRequests);
+  approvalRequests.set(actionId, { ...request, decision });
+  return { ...state, approvalRequests };
 }
 
 /** Takes the highest generation: a slow winner's event can land after its successor's. */
