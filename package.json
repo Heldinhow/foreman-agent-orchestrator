@@ -1,0 +1,19 @@
+{
+  "name": "foreman",
+  "version": "0.1.0",
+  "description": "Your team of agents with an engineering process, not a chat with tools.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "foreman": "dist/main.js"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun run typecheck && bun build src/main.ts --target=bun --outdir=dist && chmod +x dist/main.js"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "typescript": "7.0.2"
+  }
+}
