@@ -6,7 +6,8 @@ This is a recovery index, not proof of current runtime state. Verify linked reco
 
 | Work | State | Responsible thread | Evidence / next action |
 | --- | --- | --- | --- |
-| T3-native instructions and memory documentation | Proposed; awaiting PR review | Current coordination conversation; no Worker assigned | [Issue #1](https://github.com/Heldinhow/foreman-agent-orchestrator/issues/1). Documentation only. |
+| T3-native instructions and memory documentation | Proposed; awaiting PR review | Current coordination conversation; no Worker assigned | [Issue #1](https://github.com/Heldinhow/foreman-agent-orchestrator/issues/1), [PR #2](https://github.com/Heldinhow/foreman-agent-orchestrator/pull/2). Documentation only. |
+| T3 coordination skill | Documented; static validation only, awaiting PR review | Current coordination conversation; no Worker assigned | [Issue #3](https://github.com/Heldinhow/foreman-agent-orchestrator/issues/3), delivered in PR #2. Native execution/handback and cross-machine recovery remain untested. |
 | Replacement T3-native specification | Not started | Unassigned | Agree with the revised docs, then create the spec issue. |
 | Replacement implementation tickets | Blocked on replacement spec | Unassigned | Do not reuse the old backlog without re-planning. |
 

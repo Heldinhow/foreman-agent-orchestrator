@@ -13,6 +13,10 @@ Foreman is instructions, policies and persistent context for orchestration insid
 
 Do not claim to know context that has not been read or verified. Human ownership is not transferred to an agent.
 
+## Coordination skill
+
+Before assigning, messaging or reconciling Workers, load `.agents/skills/foreman-t3-coordination/SKILL.md` and the references it requires. If the host does not discover repository skills automatically, read that file explicitly. Current tool definitions and host restrictions take precedence over examples or external skills.
+
 ## Router
 
 The Router is a coordinating T3 Code thread. It understands context, documents decisions, maintains durable records, assigns work, follows results and escalates unresolved questions. It may update coordination documents; it must not implement product code or execute engineering tasks in place of a Worker.

@@ -16,6 +16,12 @@ Start with [AGENTS.md](AGENTS.md), [the current direction](docs/t3-native.md) an
 - The process is: agree with docs → spec → GitHub tickets → implementation → verification/review → PR.
 - Human approval is distinct from agent messages. Instructions alone are not enforced security controls.
 
+## Coordination skill
+
+The repository includes [`foreman-t3-coordination`](.agents/skills/foreman-t3-coordination/SKILL.md): native thread/worktree coordination, self-contained briefs, Worker handbacks, durable status and session recovery. It has no external scripts or skill dependencies.
+
+Compatible Agent Skills hosts can discover `.agents/skills/`; otherwise explicitly load the linked `SKILL.md`. Discovery varies by provider/harness. Live T3 handback and cross-machine recovery have not yet been integration-tested; see the bundled acceptance scenarios.
+
 ## Persistent context
 
 - [`orchestrator/context.md`](orchestrator/context.md): durable workspace context.
