@@ -13,6 +13,8 @@ This is the architecture decision record for Foreman v0.1. Terms are defined in 
 
 **Amendments.** Accepted entries aren't rewritten. A **Status** line says what later entry changes one and how, and where they differ the later entry wins. Section H, the owner's adaptive-behaviour decision of 2026-11-09 (source label `adaptive`), amends several safety entries.
 
+> **Current direction:** ADR-0067 supersedes the standalone runtime and pluggable-worker architecture below. Historical decisions remain for provenance; conflicting requirements and the old ticket plan must not drive new implementation.
+
 ## A. Product and scope
 
 ### ADR-0001: Name and license
@@ -649,3 +651,19 @@ Privacy is enforced at write time. Paths inside the Workspace become relative. O
 **Decided by:** delegated engineering · **Source:** ticket 003 · **Refines:** ADR-0052
 
 A Project layer may set only `models`, `policies` and `limits` (not `maxActiveWorkers`), and only its own entry under `policies.repositories`. The user override may set any key. `policies.repositoryDefaults` holds the default Mode. The schema has no implicit defaults, so `policy/defaults.yaml` must be complete by itself, and a higher layer can't make up for a gap in it. Names must match a restricted pattern, so dotted keys stay unambiguous and a Project name can't escape its directory.
+
+### ADR-0067: T3-native orchestration through independent Worker threads
+
+**Status:** accepted; supersedes earlier decisions wherever they require a standalone Foreman runtime, provider-neutral Worker adapters or direct execution by the Router.
+
+**Decided by:** the owner · **Source:** direct architecture correction and confirmation after publication
+
+Foreman is a set of instructions, policies, documentation and persistent memory used by a Router thread in T3 Code, not a separate TypeScript application controlling coding agents. Every Worker is an independent T3 Code thread, not a subagent of the Router. T3 Code's native tools create and coordinate those threads and their worktrees.
+
+The Router understands Workspace context, documents decisions, maintains persistent memory, dispatches work, follows results and escalates decisions. It does not implement product code, execute engineering tasks itself or substitute its own subagents for Worker threads. Updating its coordination documents and memory is part of its role.
+
+This deliberately accepts T3 Code as a required execution environment. Provider/model choice belongs to the T3 thread configuration rather than a Foreman Worker-adapter framework. Independent Worker contexts and resumable coordination matter more than a standalone provider-neutral runtime.
+
+Persistent memory must let a new Router session recover context, decisions, active work, Worker thread links and next actions without relying on chat history alone. Human approval remains distinct from agent messages. The exact file layout and enforceable restrictions require a revised design; instructions alone are not a security boundary.
+
+The published code is an incomplete implementation of the superseded architecture. Preserve it for migration reference, but freeze the old implementation plan. Rewrite the specification and tickets around this decision before starting new implementation. See `docs/t3-native.md`.

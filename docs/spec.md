@@ -1,5 +1,7 @@
 # Foreman v0.1 specification
 
+> **SUPERSEDED ARCHITECTURE — not an active implementation plan.** The owner accepted T3-native orchestration in ADR-0067. This historical spec describes the earlier standalone runtime. See [the current direction](t3-native.md); rewrite this specification before implementing further tickets.
+
 This spec covers the whole v0.1 scope. Terms are defined in [`GLOSSARY.md`](../GLOSSARY.md), and rationale is in [`docs/decisions.md`](decisions.md), cited here as `ADR-NNNN`. If this spec and an ADR disagree, the ADR wins until it is explicitly changed.
 
 File and directory names appear here only where they are part of the product's contract with Operators, such as the Workspace layout and required deliverables. Internal source layout is left to the implementation.

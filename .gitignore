@@ -4,6 +4,7 @@
 !/config/*.example.*
 
 # State and secrets
+/orchestrator/private/
 memory/
 .env
 .env.*
