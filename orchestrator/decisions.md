@@ -15,6 +15,12 @@ Record future coordination decisions here with source, rationale, affected work 
 - Decision: track each assignment and implementation state in `orchestrator/status.md`. Workers return outcomes to the delegating Router; the Router updates durable context and decisions.
 - Reason: a result left only in a Worker conversation is insufficient for continuity.
 
+## D-004: Grill questions go through the Router
+
+- Authority: direct owner instruction, tracked in GitHub issue #4.
+- Decision: during `grill-with-docs`, the Worker asks the delegating Router. The Router answers from known context and recorded decisions; when it does not know, it asks the human and relays the answer to the Worker.
+- Record: preserve question identity, source of the answer, pending state and the relevant document updates. Do not turn an agent response into human approval.
+
 ## D-003: Git-based portability
 
 - Authority: owner requested instruction changes, commit, push and clone on another computer.

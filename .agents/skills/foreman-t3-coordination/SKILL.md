@@ -61,6 +61,14 @@ Record returned delivery status accurately: queued, started or steered is not co
 
 Do not poll a running delegate or use sleeps, watchers or schedules to evade host lifecycle rules. Independent-thread observation and event subscriptions must follow the tools and host rules actually available. Do not assume top-level Workers automatically wake the Router: establish the explicit handback below.
 
+## Questions during grill-with-docs
+
+A `grill-with-docs` Worker sends its questions to the delegating Router using the thread communication protocol, not directly to the human. Include the issue, Worker thread link, stable question ID, question, recommended answer where useful and the decision/work blocked on it. This is an intermediate conversation, not a final handback; preserve the assignment while answers are pending.
+
+The Router checks relevant context and decisions before answering. If the answer is known and within its authority, reply to the originating Worker with the answer and its recorded source. If unknown, ambiguous, contradictory or outside its authority, ask the human instead of guessing. Preserve the question ID and Worker link while awaiting the human, then record and relay the human's answer. Never claim a Router inference was a human decision or use a conversational answer to bypass an approval gate.
+
+Record pending questions and next actions in `orchestrator/status.md`; consequential answers and their source belong in `orchestrator/decisions.md` or the relevant architectural ADR. The Worker incorporates resolved answers into its grill documents and does not mark dependent decisions settled before receiving the answer. Unrelated work may continue. Failed delivery follows the pending-handback recovery rules below; silence is not consent.
+
 ## 5. Handback and reconciliation
 
 Every brief names the delegating Router and asks the Worker to send its report there using the available thread communication tool. See `references/protocol.md`. Use a noninterrupting delivery mode when supported. Workers must report blockers and failure as well as success.

@@ -25,6 +25,11 @@ Include the report fields below. Check delivery; queued is not acknowledged.
 If delivery fails, retain a report in the agreed safe location, mark handback
 pending and do not assume the Router knows the result.
 Fallback report location / confidentiality constraints:
+
+For grill-with-docs: send questions to the delegating Router, with stable
+question IDs. Await answers for dependent decisions; incorporate answers and
+their provenance into the grill documents. Do not ask the human directly or
+treat the Router's answer as human approval.
 ```
 
 If the launch operation does not yet expose the new Worker's identity, the Router records that link after launch; do not fabricate it in the initial brief.
@@ -48,6 +53,23 @@ Last update (timestamp):
 ```
 
 These are coordination labels, not guaranteed T3 runtime enum values. `cancelled` requires evidence that execution stopped; a cancellation request alone is insufficient. `done` requires the issue's acceptance criteria and required verification/approvals, not just a successful send or commit.
+
+## Intermediate grill question / answer
+
+```text
+Issue / Worker thread / delegating Router:
+Question ID:
+Question and context:
+Recommended answer and rationale (if applicable):
+Decision or work blocked:
+State: awaiting-router | awaiting-human | answered | delivery-pending
+Answer:
+Source: recorded context/decision reference OR explicit human response
+Originating Worker notified / delivery evidence:
+Documents updated:
+```
+
+The Worker asks the Router; the Router answers from verified context or escalates to the human. An escalated question retains the same identity until the human answer is relayed back. Track pending state and next action durably; do not mark the question resolved merely because it was sent. A materially new question gets a new ID. A repeated delivery of the same question should not trigger duplicate human escalations.
 
 ## Worker return
 

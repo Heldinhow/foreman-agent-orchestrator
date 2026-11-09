@@ -21,6 +21,10 @@ Review these statically now; run live exercises later through authorized indepen
 9. **Model and scope:** no default expensive model, silent provider substitution, host-rule override or unrequested destructive cleanup.
 10. **Evidence gap:** the Router assigns missing engineering verification rather than performing the Worker's job itself.
 
+11. **Known grill answer:** the Worker asks the Router; the Router cites an existing decision, records the answer and replies to that Worker without unnecessarily escalating to the human.
+12. **Unknown grill answer:** the Router records the pending question, asks the human, then relays the sourced answer to the originating Worker. Dependent decisions remain unsettled until answered; duplicate question delivery does not cause duplicate escalation.
+13. **Approval distinction:** a grill answer from the Router cannot masquerade as human authorization; uncertainty, conflicting context or missing authority requires escalation.
+
 ## Delivery checks
 
 - Valid Agent Skills frontmatter; name matches directory; description states applicability.

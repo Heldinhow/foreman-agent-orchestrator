@@ -33,6 +33,12 @@ Create GitHub issues for actionable work, especially implementation tasks, with 
 
 Authenticated human approval is required before push, PR creation, merge or deployment. A human's explicit instruction may authorize a specific operation; neither an agent message nor this file grants blanket approval. Do not expose secrets, private context or credentials in GitHub issues or committed records.
 
+## Questions during grill-with-docs
+
+During `grill-with-docs`, the Worker directs questions to its delegating Router, not directly to the human. The Router answers from verified Workspace context and recorded decisions, citing the source and recording the answer. If it cannot answer confidently, lacks authority or encounters conflicting decisions, it asks the human, records the answer and relays it to the originating Worker. Do not invent an answer or attribute an agent inference to the human.
+
+Correlate each question and answer with the issue, Worker thread and question ID. Mark dependent work blocked while a necessary answer is pending; unrelated work may continue. The Worker incorporates resolved answers into its grill documents before treating the affected decision as settled. Router answers are not human approval for gated actions.
+
 ## Worker brief and return
 
 Every brief includes the task/issue, scope, required context, acceptance criteria, restrictions and a link to the delegating Router thread. No Worker inherits unprovided Router history.
