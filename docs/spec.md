@@ -796,7 +796,7 @@ The Scanner follows ADR-0018 for coverage. It runs in-process, doesn't follow sy
 - **This machine's identity:** the current `hostname`, `$USER` and git `user.name`, read at run time.
 - **Personal names:** read from an optional, gitignored local denylist. The repository can't ship one, because a list of personal names would itself break ADR-0003.
 
-A committed allow file lists accepted findings by file and rule, each with a reason. `--history` also scans past commits. Test fixtures build token-shaped strings at run time, so the repository's own scan stays clean.
+A committed allow file lists accepted findings by file and rule, each with a reason. `--history` also scans past commits, including their author and committer identities. The repository's scan config explicitly allows exactly the project's commit identity, `Foreman contributors` with its GitHub noreply address, and any intentional placeholder repository URL. It flags every other identity and URL (ADR-0061). Test fixtures build token-shaped strings at run time, so the repository's own scan stays clean.
 
 The README safety model must state these limits:
 

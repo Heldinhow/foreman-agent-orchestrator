@@ -603,3 +603,11 @@ The glossary's **Owner** decides what the Foreman project becomes. The adaptive 
 **Decided by:** the owner · **Source:** tickets round (2026-11-09) · **Amends:** ADR-0009
 
 With nothing hard-locked (ADR-0051), a company can't impose a minimum through Foreman v0.1. An enforced minimum stays out of scope for v0.1, and an "organization policy layer (enforced minimums)" goes on the README's v0.2 roadmap, next to the dashboard, cost and difficulty routing, and budgets.
+
+### ADR-0061: The scan's only allowed identity is the project's commit identity
+
+**Decided by:** the owner · **Source:** implementation round (2026-11-09)
+
+The repository keeps its configured commit identity, a GitHub noreply address that contains a handle. `bun run scan`, including `--history`, explicitly allows exactly that one author email and any intentional placeholder repository URL, and flags everything else. The owner also accepted the scan's design: a local gitignored denylist plus a run-time check of `hostname`, `$USER` and git `user.name`.
+
+The name check on git `user.name` must therefore not flag the allowed identity itself. Since the allowed email is the exception by design, it must be matched exactly rather than by pattern.

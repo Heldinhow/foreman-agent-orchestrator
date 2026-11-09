@@ -12,6 +12,7 @@
 - [ ] Token rules cover GitHub (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`), `sk-` style keys, Slack `xox` tokens, AWS `AKIA` keys and private key headers.
 - [ ] Other rules cover personal home paths, internal-looking hostnames, private IP addresses, this machine's `hostname`, `$USER` and git `user.name`, and names from the local denylist.
 - [ ] The denylist file is gitignored, and the repository ships no personal names, paths or hostnames.
+- [ ] Per ADR-0061, the scan including `--history` explicitly allows exactly the project's commit author email (read from this repository's git config at setup and committed to the allow config) and any intentional placeholder repository URL. It flags every other author identity and URL, and a near-match of the allowed email is flagged.
 - [ ] The result is reported honestly: any real finding in the repository or its history is fixed or brought to the owner, and is never silently allowlisted.
 
 ## Tests
