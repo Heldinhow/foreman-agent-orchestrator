@@ -1,5 +1,6 @@
 import {
   ACTION_DONE,
+  ADAPTER_UNENFORCED_STARTED,
   ACTION_PENDING,
   APPROVAL_GRANTED,
   APPROVAL_REJECTED,
@@ -49,6 +50,8 @@ export interface LedgerState {
   approvalRequests: ReadonlyMap<string, ApprovalRequestRecord>;
   tasks: ReadonlyMap<string, TaskRecord>;
   runGenerations: ReadonlyMap<string, number>;
+  /** Per Adapter name, how many Workers it started without enforcing the Guard Policy. */
+  unenforcedAdapterStarts: ReadonlyMap<string, number>;
 }
 
 export const initialState: LedgerState = {
@@ -56,6 +59,7 @@ export const initialState: LedgerState = {
   approvalRequests: new Map(),
   tasks: new Map(),
   runGenerations: new Map(),
+  unenforcedAdapterStarts: new Map(),
 };
 
 export function reduce(state: LedgerState, event: LedgerEvent): LedgerState {
@@ -67,6 +71,7 @@ export function reduce(state: LedgerState, event: LedgerEvent): LedgerState {
   if (event.type === TASK_LOCKED) return recordTaskLocked(state, event);
   if (event.type === RUN_LOCKED) return recordRunLocked(state, event);
   if (event.type === TASK_CLOSED) return recordTaskClosed(state, event);
+  if (event.type === ADAPTER_UNENFORCED_STARTED) return recordUnenforcedStart(state, event);
   return state;
 }
 
@@ -185,4 +190,11 @@ function recordTaskClosed(state: LedgerState, event: LedgerEvent): LedgerState {
   const tasks = new Map(state.tasks);
   tasks.set(key, { ...record, closedBy: event.eventId });
   return { ...state, tasks };
+}
+
+function recordUnenforcedStart(state: LedgerState, event: LedgerEvent): LedgerState {
+  const name = event.data?.adapter as string;
+  const starts = new Map(state.unenforcedAdapterStarts);
+  starts.set(name, (starts.get(name) ?? 0) + 1);
+  return { ...state, unenforcedAdapterStarts: starts };
 }

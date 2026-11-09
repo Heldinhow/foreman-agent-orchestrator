@@ -29,3 +29,5 @@ export const TASK_LOCKED = "task.locked";
 export const RUN_LOCKED = "run.locked";
 /** Must carry the current generation, so a holder that lost its lock can't close the Task. */
 export const TASK_CLOSED = "task.closed";
+/** Written at each Worker start by an Adapter that can't enforce the Guard Policy. */
+export const ADAPTER_UNENFORCED_STARTED = "adapter.unenforced_started";

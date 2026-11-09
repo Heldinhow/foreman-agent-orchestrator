@@ -9,7 +9,7 @@ export function isYamlMap(value: unknown): value is YamlMap {
 }
 
 /** Zod's record parsing skips this key, so it has to be refused before validation. */
-function hasProtoKey(value: unknown, seen = new WeakSet<object>()): boolean {
+export function hasProtoKey(value: unknown, seen = new WeakSet<object>()): boolean {
   if (typeof value !== "object" || value === null || seen.has(value)) return false;
   seen.add(value);
   return Object.entries(value).some(
