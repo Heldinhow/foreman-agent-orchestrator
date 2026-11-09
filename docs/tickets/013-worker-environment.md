@@ -9,6 +9,7 @@
 ## Acceptance criteria
 
 - [ ] **AC-5:** a Worker receives exactly the built environment, and a canary in the supervisor's environment isn't visible.
+- [ ] Per ADR-0064, the `foreman` command doesn't load `.env` or `bunfig.toml` from the current directory: a real-process test runs the built CLI from a directory holding a planted `bunfig.toml` preload and a `.env` canary, and shows that neither took effect. The Bun version and the command's launcher behaviour are the proof, so don't only assert on flags.
 - [ ] **AC-45:** a `.env.example` remains available, and `.env` stays denied until a confirmed Relaxation changes it.
 - [ ] **AC-46:** a refused credential name in `env.passthrough` isn't passed, and a file edit adding one has no effect until confirmed.
 - [ ] **AC-47:** a Worker's `git push` is blocked by the injected hook, with no change to the repository's config.

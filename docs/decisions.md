@@ -611,3 +611,41 @@ With nothing hard-locked (ADR-0051), a company can't impose a minimum through Fo
 The repository keeps its configured commit identity, a GitHub noreply address that contains a handle. `bun run scan`, including `--history`, explicitly allows exactly that one author email and any intentional placeholder repository URL, and flags everything else. The owner also accepted the scan's design: a local gitignored denylist plus a run-time check of `hostname`, `$USER` and git `user.name`.
 
 The name check on git `user.name` must therefore not flag the allowed identity itself. Since the allowed email is the exception by design, it must be matched exactly rather than by pattern.
+
+## I. Implementation decisions
+
+### ADR-0062: Lock files carry their generation
+
+**Decided by:** delegated engineering · **Source:** ticket 006 · **Amends:** ADR-0029
+
+A lock's file name includes its generation. With one fixed path, a late rename-aside could displace a fresh lock, so the `O_EXCL` create and rename-aside from ADR-0029 now act on a per-generation path. The next generation is the highest in the Ledger or lock files plus one, so a claimant that died before recording its generation can't have it reused.
+
+A lock file with no readable heartbeat, where its creator was killed between creating and writing it, expires by file modification time. This is a narrow exception to "staleness is decided only by an expired heartbeat", since otherwise that crash would block the Task permanently.
+
+### ADR-0063: Ancestor inspection, and macOS
+
+**Decided by:** delegated engineering · **Source:** ticket 007 · **Amends:** ADR-0008, ADR-0039
+
+"If ancestors can't be inspected, it refuses" can't hold literally, because PID 1 and `systemd --user` are unreadable on ordinary Linux systems, and no Approval could ever succeed. An unreadable ancestor now passes only if the kernel or a process wholly of another account started it, and the check continues upward. One started by the same user is refused.
+
+The ancestor check is implemented with `/proc`, so on macOS `foreman approve` and `foreman reject` always refuse. They fail closed and nothing is bypassed, but until a macOS check is written and tested, the local Human Channel doesn't work there. Since nothing in v0.1 has been tested on macOS, Linux is the only platform v0.1 can claim to support. The README must say this.
+
+### ADR-0064: The `foreman` command ignores Bun's current-directory config
+
+**Decided by:** delegated engineering · **Source:** ticket 007 finding, fixed in ticket 013
+
+Bun automatically loads `.env` and `bunfig.toml` from the current directory. A `bunfig.toml` preload is code execution, so an Operator running `foreman` from a directory a Worker can write to, such as a worktree, would run code the Worker planted, with the Operator's privileges. The `foreman` command must therefore start with neither, and a real-process test proves it. Foreman reads the Workspace's `.env` explicitly, only where the spec says so.
+
+### ADR-0065: Ledger crash and privacy handling
+
+**Decided by:** delegated engineering · **Source:** ticket 002 · **Refines:** ADR-0030
+
+A torn fragment is never repaired or sealed, because truncating could destroy a concurrent writer's durable line. The writer stays one blind `O_APPEND` write, and the reader accepts a fragment directly followed by an intact event on the same line, reporting it as torn. An unterminated final line is always torn, even if it is complete JSON, because its append never returned.
+
+Privacy is enforced at write time. Paths inside the Workspace become relative. Other absolute paths, `HOME`, usernames and the hostname are refused rather than altered. `actionId` is the first 32 hex characters of SHA-256 over the Run, Task, kind, target and head SHA, pinned by a test, since changing it would orphan existing Ledgers and Approvals.
+
+### ADR-0066: Policy Layer limits
+
+**Decided by:** delegated engineering · **Source:** ticket 003 · **Refines:** ADR-0052
+
+A Project layer may set only `models`, `policies` and `limits` (not `maxActiveWorkers`), and only its own entry under `policies.repositories`. The user override may set any key. `policies.repositoryDefaults` holds the default Mode. The schema has no implicit defaults, so `policy/defaults.yaml` must be complete by itself, and a higher layer can't make up for a gap in it. Names must match a restricted pattern, so dotted keys stay unambiguous and a Project name can't escape its directory.
