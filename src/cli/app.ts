@@ -2,6 +2,7 @@ import { version } from "../../package.json";
 import type { HumanChannel } from "../approvals/human-channel.ts";
 import { ConfigError } from "../config/errors.ts";
 import { approveCommand, rejectCommand } from "./commands/decide.ts";
+import { graphCommand } from "./commands/graph.ts";
 import { policyCommand } from "./commands/policy.ts";
 import { validateCommand } from "./commands/validate.ts";
 import { UsageError } from "./errors.ts";
@@ -43,6 +44,7 @@ const commands = new Map<string, Command>([
   ],
   ["approve", approveCommand],
   ["reject", rejectCommand],
+  ["graph", graphCommand],
   ["policy", policyCommand],
   ["validate", validateCommand],
 ]);

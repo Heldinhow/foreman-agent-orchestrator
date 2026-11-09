@@ -3,11 +3,15 @@ import { loadPolicySet, userOverrideFile, type PolicySet } from "../../policy/po
 import type { AppDeps } from "../app.ts";
 
 /** Finds the Workspace and loads its Policy Set, which throws if any of it is invalid. */
-export function policySetFor(dir: string | undefined, deps: AppDeps): { set: PolicySet; overrideFile: string } {
+export function policySetFor(
+  dir: string | undefined,
+  deps: AppDeps,
+): { set: PolicySet; overrideFile: string; workspaceDir: string } {
   const overrideFile = userOverrideFile(deps.env);
   const workspaceDir = findWorkspace({ dir, env: deps.env, cwd: deps.cwd });
   return {
     set: loadPolicySet({ defaultsFile: deps.policyDefaultsFile, workspaceDir, overrideFile }),
     overrideFile,
+    workspaceDir,
   };
 }

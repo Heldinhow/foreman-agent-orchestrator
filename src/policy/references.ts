@@ -1,9 +1,11 @@
+import type { ConfigIssue } from "../config/errors.ts";
+import type { KeyExplanation, PolicySet } from "./policy-set.ts";
 import type { Policy } from "./schema.ts";
 
 /**
  * Steps that belong to the core rather than the Pipeline. They can be named in Model
- * Assignment without being declared. Later tickets add checks that need `workspace.yaml`
- * (Project names) and the prompt files (prompt names).
+ * Assignment without being declared. Later tickets add checks that need the prompt files
+ * (prompt names). Project names are checked by `checkProjectReferences`.
  */
 const SYSTEM_STEPS = ["routing", "lesson-extraction", "policy-drafting"];
 
@@ -62,4 +64,29 @@ export function checkReferences(policy: Policy): PolicyProblem[] {
   }
 
   return problems;
+}
+
+/** Checks every Project that Policy names against the Projects `workspace.yaml` declares. */
+export function checkProjectReferences(set: PolicySet, projects: ReadonlySet<string>): ConfigIssue[] {
+  const { policy, explain } = set.effective();
+  const fileSetting = (key: string) => (explain(key)[0] as KeyExplanation).setBy.file;
+  const noProject = (name: string) => `no Project named "${name}"`;
+  const issues: ConfigIssue[] = [];
+
+  for (const [role, { projects: named = [] }] of Object.entries(policy.roles)) {
+    const key = `roles.${role}.projects`;
+    named.forEach((name, index) => {
+      if (!projects.has(name)) {
+        issues.push({ file: fileSetting(key), key: `${key}[${index}]`, reason: noProject(name) });
+      }
+    });
+  }
+  for (const name of Object.keys(policy.policies.repositories)) {
+    const key = `policies.repositories.${name}`;
+    if (!projects.has(name)) issues.push({ file: fileSetting(key), key, reason: noProject(name) });
+  }
+  for (const { project, file } of set.projects) {
+    if (project !== undefined && !projects.has(project)) issues.push({ file, reason: noProject(project) });
+  }
+  return issues;
 }
